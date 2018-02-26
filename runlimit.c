@@ -16,6 +16,7 @@
 #include <errno.h>
 
 #include <limits.h>
+#include <sys/param.h>
 
 #include "runlimit.h"
 
@@ -28,9 +29,9 @@
 #endif
 
 #define VERBOSE(__n, ...) do { \
-    if (verbose >= __n) { \
-        (void)fprintf(stderr, __VA_ARGS__); \
-    } \
+  if (verbose >= __n) { \
+    (void)fprintf(stderr, __VA_ARGS__); \
+  } \
 } while (0)
 
 #define EXIT_ERRNO (127+errno)
@@ -47,6 +48,7 @@ enum {
   OPT_SIGNAL = 2,
   OPT_WAIT   = 4,
   OPT_PRINT  = 8,
+  OPT_FILE   = 16,
 };
 
 static const struct option long_options[] =
@@ -54,6 +56,7 @@ static const struct option long_options[] =
   {"intensity",   required_argument,  NULL, 'i'},
   {"period",      required_argument,  NULL, 'p'},
   {"signal",      required_argument,  NULL, 's'},
+  {"file",        required_argument,  NULL, 'f'},
   {"dryrun",      no_argument,        NULL, 'n'},
   {"print",       no_argument,        NULL, 'P'},
   {"verbose",     no_argument,        NULL, 'v'},
@@ -62,8 +65,12 @@ static const struct option long_options[] =
   {NULL,          0,                  NULL, 0}
 };
 
-static int state_open(char *name);
-static int state_create(char *name);
+static int state_open(char *name, int opt);
+static int shmem_open(char *name);
+static int shmem_create(char *name);
+static int file_open(char *name);
+static int file_create(char *name);
+static int check_state(int fd);
 static void usage();
 
   int
@@ -71,7 +78,8 @@ main(int argc, char *argv[])
 {
   int fd;
   runlimit_t *ap;
-  char name[NAME_MAX-1] = {0};
+  char name[MAXPATHLEN] = {0}; /* NAME_MAX-1 */
+  char *path = NULL;
   u_int32_t intensity = 1;
   int period = 1;
   struct timespec now;
@@ -88,8 +96,15 @@ main(int argc, char *argv[])
   if (clock_gettime(RUNLIMIT_CLOCK_MONOTONIC, &now) < 0)
     err(EXIT_ERRNO, "clock_gettime(CLOCK_MONOTONIC)");
 
-  while ((ch = getopt_long(argc, argv, "hi:nPp:s:vw", long_options, NULL)) != -1) {
+  while ((ch = getopt_long(argc, argv, "f:hi:nPp:s:vw", long_options, NULL)) != -1) {
     switch (ch) {
+      case 'f':
+        opt |= OPT_FILE;
+        path = strdup(optarg);
+        if (path == NULL)
+          err(EXIT_FAILURE, "strdup");
+        break;
+
       case 'i':
         intensity = strtonum(optarg, 1, UINT_MAX, NULL);
         if (errno)
@@ -133,13 +148,16 @@ main(int argc, char *argv[])
   if (argc - optind == 0)
     usage();
 
-  n = snprintf(name, sizeof(name), "/%s-%d-%s", __progname, getuid(),
+  n = snprintf(name, sizeof(name), "%s/%s-%d-%s",
+      path == NULL ? "" : path,
+      __progname,
+      getuid(),
       argv[optind]);
 
   if (n < 0 || n >= sizeof(name))
     usage();
 
-  fd = state_open(name);
+  fd = state_open(name, opt);
 
   if (fd < 0)
     err(EXIT_ERRNO, "state_open");
@@ -211,23 +229,55 @@ main(int argc, char *argv[])
 }
 
   static int
-state_open(char *name)
+state_open(char *name, int opt)
+{
+  return (name == NULL) ? shmem_open(name) : file_open(name);
+}
+
+  static int
+shmem_open(char *name)
 {
   int fd;
 
   fd = shm_open(name, O_RDWR, 0);
 
   if (fd > -1)
-    return fd;
+    return check_state(fd);
 
   if (errno == ENOENT)
-    return state_create(name);
+    return shmem_create(name);
 
   return -1;
 }
 
   static int
-state_create(char *name)
+file_open(char *name)
+{
+  int fd;
+
+  fd = open(name, O_RDWR);
+
+  if (fd > -1 && check_state(fd) > -1)
+    return fd;
+
+  switch (errno) {
+    case EFAULT:
+      if (unlink(name) < 0)
+        return -1;
+      /* fall through */
+    case ENOENT:
+      return file_create(name);
+
+    default:
+      break;
+  }
+
+  return -1;
+}
+
+
+  static int
+shmem_create(char *name)
 {
   int fd;
 
@@ -247,18 +297,68 @@ state_create(char *name)
   return fd;
 }
 
+  static int
+file_create(char *name)
+{
+  int fd;
+
+  fd = open(name, O_RDWR|O_CREAT|O_EXCL, 0600);
+
+  if (fd < 0)
+    return -1;
+
+  if (ftruncate(fd, sizeof(runlimit_t)) < 0) {
+    int oerrno = errno;
+    (void)close(fd);
+    (void)unlink(name);
+    errno = oerrno;
+    return -1;
+  }
+
+  return fd;
+}
+
+  static int
+check_state(int fd)
+{
+  struct stat buf = {0};
+  int oerrno;
+
+  if (fstat(fd, &buf) < 0)
+    goto RUNLIMIT_ERR;
+
+  if (buf.st_uid != getuid()) {
+    errno = EPERM;
+    goto RUNLIMIT_ERR;
+  }
+
+  if (buf.st_size != sizeof(runlimit_t)) {
+    errno = EFAULT;
+    goto RUNLIMIT_ERR;
+  }
+
+  return fd;
+
+RUNLIMIT_ERR:
+  oerrno = errno;
+  (void)close(fd);
+  errno = oerrno;
+
+  return -1;
+}
+
   static void
 usage()
 {
   errx(EXIT_FAILURE, "[OPTION] <TAG>\n"
-    "version: %s (using %s sandbox)\n\n"
-    "-i, --intensity <count>  number of restarts\n"
-    "-p, --period <seconds>   time period\n"
-    "-s, --signal <signal>    send signal to process group\n"
-    "-w, --wait               wait until period expires\n"
-    "-n, --dryrun             do nothing\n"
-    "-P, --print              print remaining time\n"
-    "-v, --verbose            verbose mode\n",
-    RUNLIMIT_VERSION,
-    RUNLIMIT_SANDBOX);
+      "version: %s (using %s sandbox)\n\n"
+      "-i, --intensity <count>  number of restarts\n"
+      "-p, --period <seconds>   time period\n"
+      "-s, --signal <signal>    send signal to process group\n"
+      "-w, --wait               wait until period expires\n"
+      "-n, --dryrun             do nothing\n"
+      "-P, --print              print remaining time\n"
+      "-v, --verbose            verbose mode\n",
+      RUNLIMIT_VERSION,
+      RUNLIMIT_SANDBOX);
 }
