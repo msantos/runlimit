@@ -231,7 +231,7 @@ main(int argc, char *argv[])
   static int
 state_open(char *name, int opt)
 {
-  return (name == NULL) ? shmem_open(name) : file_open(name);
+  return (opt & OPT_FILE) ? file_open(name) : shmem_open(name);
 }
 
   static int
