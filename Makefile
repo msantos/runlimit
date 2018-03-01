@@ -6,7 +6,7 @@ SRCS=   runlimit.c \
 
 UNAME_SYS := $(shell uname -s)
 ifeq ($(UNAME_SYS), Linux)
-    CFLAGS ?= -D_FORTIFY_SOURCE=2 -O2 -fstack-protector-strong \
+    CFLAGS ?= -lrt -D_FORTIFY_SOURCE=2 -O2 -fstack-protector-strong \
               -Wformat -Werror=format-security \
               -fno-strict-aliasing
 	  RUNLIMIT_SANDBOX ?= seccomp
@@ -33,7 +33,7 @@ CFLAGS += $(RUNLIMIT_CFLAGS) \
           -DRUNLIMIT_SANDBOX=\"$(RUNLIMIT_SANDBOX)\" \
           -DRUNLIMIT_SANDBOX_$(RUNLIMIT_SANDBOX)
 
-LDFLAGS += $(RUNLIMIT_LDFLAGS) -lrt -Wl,-z,relro,-z,now
+LDFLAGS += $(RUNLIMIT_LDFLAGS) -Wl,-z,relro,-z,now
 
 all: $(PROG)
 
