@@ -6,9 +6,10 @@ SRCS=   runlimit.c \
 
 UNAME_SYS := $(shell uname -s)
 ifeq ($(UNAME_SYS), Linux)
-    CFLAGS ?= -lrt -D_FORTIFY_SOURCE=2 -O2 -fstack-protector-strong \
+    CFLAGS ?= -D_FORTIFY_SOURCE=2 -O2 -fstack-protector-strong \
               -Wformat -Werror=format-security \
               -fno-strict-aliasing
+		LDFLAGS ?= -lrt
 	  RUNLIMIT_SANDBOX ?= seccomp
 else ifeq ($(UNAME_SYS), OpenBSD)
     CFLAGS ?= -DHAVE_STRTONUM \
