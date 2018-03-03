@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
 teardown() {
-   rm -f "/dev/shm/runlimit-$UID-test"
-   rm -f "runlimit-$UID-test"
+  runlimit -z test
+  runlimit -f . -z test
 }
 
 @test "runlimit: shmem: under threshold" {

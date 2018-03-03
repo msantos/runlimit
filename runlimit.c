@@ -49,6 +49,7 @@ enum {
   OPT_WAIT   = 4,
   OPT_PRINT  = 8,
   OPT_FILE   = 16,
+  OPT_ZERO   = 32,
 };
 
 static const struct option long_options[] =
@@ -61,6 +62,7 @@ static const struct option long_options[] =
   {"print",       no_argument,        NULL, 'P'},
   {"verbose",     no_argument,        NULL, 'v'},
   {"wait",        no_argument,        NULL, 'w'},
+  {"zero",        no_argument,        NULL, 'z'},
   {"help",        no_argument,        NULL, 'h'},
   {NULL,          0,                  NULL, 0}
 };
@@ -96,7 +98,8 @@ main(int argc, char *argv[])
   if (clock_gettime(RUNLIMIT_CLOCK_MONOTONIC, &now) < 0)
     err(EXIT_ERRNO, "clock_gettime(CLOCK_MONOTONIC)");
 
-  while ((ch = getopt_long(argc, argv, "f:hi:nPp:s:vw", long_options, NULL)) != -1) {
+  while ((ch = getopt_long(argc, argv, "f:hi:nPp:s:vwz",
+          long_options, NULL)) != -1) {
     switch (ch) {
       case 'f':
         opt |= OPT_FILE;
@@ -137,6 +140,10 @@ main(int argc, char *argv[])
 
       case 'w':
         opt |= OPT_WAIT;
+        break;
+
+      case 'z':
+        opt |= OPT_ZERO;
         break;
 
       case 'h':
@@ -185,6 +192,13 @@ main(int argc, char *argv[])
       period,
       ap->intensity);
 
+  if (opt & OPT_ZERO) {
+    ap->intensity = 0;
+    ap->now.tv_sec = 0;
+    ap->now.tv_nsec = 0;
+    goto RUNLIMIT_SYNC;
+  }
+
   remaining = period <= diff ? 0 : period - diff;
 
   if (opt & OPT_PRINT)
@@ -215,6 +229,7 @@ main(int argc, char *argv[])
       break;
   }
 
+RUNLIMIT_SYNC:
   if (msync(ap, sizeof(runlimit_t), MS_SYNC|MS_INVALIDATE) < 0)
     err(EXIT_ERRNO, "msync");
 
