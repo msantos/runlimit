@@ -11,8 +11,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <signal.h>
-
 #include <errno.h>
 
 #include <limits.h>
@@ -45,18 +43,16 @@ typedef struct {
 
 enum {
   OPT_DRYRUN = 1,
-  OPT_SIGNAL = 2,
-  OPT_WAIT   = 4,
-  OPT_PRINT  = 8,
-  OPT_FILE   = 16,
-  OPT_ZERO   = 32,
+  OPT_WAIT   = 2,
+  OPT_PRINT  = 4,
+  OPT_FILE   = 8,
+  OPT_ZERO   = 16,
 };
 
 static const struct option long_options[] =
 {
   {"intensity",   required_argument,  NULL, 'i'},
   {"period",      required_argument,  NULL, 'p'},
-  {"signal",      required_argument,  NULL, 's'},
   {"file",        required_argument,  NULL, 'f'},
   {"dryrun",      no_argument,        NULL, 'n'},
   {"print",       no_argument,        NULL, 'P'},
@@ -92,13 +88,12 @@ main(int argc, char *argv[])
   int ch;
   int n = 0;
   int rv = 0;
-  int sig = 0;
 
   /* initialize local time before entering sandbox */
   if (clock_gettime(RUNLIMIT_CLOCK_MONOTONIC, &now) < 0)
     err(EXIT_ERRNO, "clock_gettime(CLOCK_MONOTONIC)");
 
-  while ((ch = getopt_long(argc, argv, "f:hi:nPp:s:vwz",
+  while ((ch = getopt_long(argc, argv, "f:hi:nPp:vwz",
           long_options, NULL)) != -1) {
     switch (ch) {
       case 'f':
@@ -124,12 +119,6 @@ main(int argc, char *argv[])
 
       case 'p':
         period = strtonum(optarg, 1, INT_MAX, NULL);
-        if (errno)
-          err(EXIT_FAILURE, "strtonum: %s", optarg);
-        break;
-
-      case 's':
-        sig = strtonum(optarg, 1, NSIG, NULL);
         if (errno)
           err(EXIT_FAILURE, "strtonum: %s", optarg);
         break;
@@ -232,13 +221,6 @@ main(int argc, char *argv[])
 RUNLIMIT_SYNC:
   if (msync(ap, sizeof(runlimit_t), MS_SYNC|MS_INVALIDATE) < 0)
     err(EXIT_ERRNO, "msync");
-
-  if (sig > 0 && rv == 111) {
-    VERBOSE(1, "sending signal %d to process group\n", sig);
-
-    if (!(opt & OPT_DRYRUN))
-      (void)kill(0, sig);
-  }
 
   return rv;
 }
@@ -369,7 +351,6 @@ usage()
       "version: %s (using %s sandbox)\n\n"
       "-i, --intensity <count>  number of restarts\n"
       "-p, --period <seconds>   time period\n"
-      "-s, --signal <signal>    send signal to process group\n"
       "-w, --wait               wait until period expires\n"
       "-n, --dryrun             do nothing\n"
       "-P, --print              print remaining time\n"
