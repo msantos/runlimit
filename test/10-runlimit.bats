@@ -2,7 +2,7 @@
 
 teardown() {
   runlimit -z test
-  runlimit -f . -z test
+  runlimit -d . -z test
 }
 
 @test "runlimit: shmem: under threshold" {
@@ -25,8 +25,8 @@ EOF
 }
 
 @test "runlimit: file: under threshold" {
-  runlimit -f . -i 2 -p 10 test
-  run runlimit -v -f . -i 2 -p 10 test
+  runlimit -d . -i 2 -p 10 test
+  run runlimit -v -d . -i 2 -p 10 test
 cat << EOF
 $output
 EOF
@@ -34,9 +34,9 @@ EOF
 }
 
 @test "runlimit: file: above threshold" {
-  runlimit -f . -i 2 -p 10 test
-  runlimit -f . -i 2 -p 10 test
-  run runlimit -f . -v -i 2 -p 10 test
+  runlimit -d . -i 2 -p 10 test
+  runlimit -d . -i 2 -p 10 test
+  run runlimit -d . -v -i 2 -p 10 test
 cat << EOF
 $output
 EOF

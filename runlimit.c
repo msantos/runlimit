@@ -53,7 +53,7 @@ static const struct option long_options[] =
 {
   {"intensity",   required_argument,  NULL, 'i'},
   {"period",      required_argument,  NULL, 'p'},
-  {"file",        required_argument,  NULL, 'f'},
+  {"directory",   required_argument,  NULL, 'd'},
   {"dryrun",      no_argument,        NULL, 'n'},
   {"print",       no_argument,        NULL, 'P'},
   {"verbose",     no_argument,        NULL, 'v'},
@@ -93,10 +93,10 @@ main(int argc, char *argv[])
   if (clock_gettime(RUNLIMIT_CLOCK_MONOTONIC, &now) < 0)
     err(EXIT_ERRNO, "clock_gettime(CLOCK_MONOTONIC)");
 
-  while ((ch = getopt_long(argc, argv, "f:hi:nPp:vwz",
+  while ((ch = getopt_long(argc, argv, "d:hi:nPp:vwz",
           long_options, NULL)) != -1) {
     switch (ch) {
-      case 'f':
+      case 'd':
         opt |= OPT_FILE;
         path = strdup(optarg);
         if (path == NULL)
