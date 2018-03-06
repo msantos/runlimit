@@ -5,6 +5,26 @@ teardown() {
   runlimit -d . -z test
 }
 
+@test "runlimit: zero state" {
+  runlimit -z test
+  runlimit -i 100 -p 120 test
+  runlimit -i 100 -p 120 test
+  runlimit -i 100 -p 120 test
+  runlimit -i 100 -p 120 test
+  run runlimit -v -i 100 -p 120 test
+cat << EOF
+$output
+EOF
+  [ "${lines[5]}" = "count=4" ]
+
+  runlimit -z -i 100 -p 120 test
+  run runlimit -v -i 100 -p 120 test
+cat << EOF
+$output
+EOF
+  [ "${lines[5]}" = "count=0" ]
+}
+
 @test "runlimit: shmem: under threshold" {
   runlimit -i 2 -p 10 test
   run runlimit -v -i 2 -p 10 test
