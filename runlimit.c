@@ -103,6 +103,7 @@ main(int argc, char *argv[])
   int ch;
   int n = 0;
   int rv = 0;
+  const char *errstr = NULL;
 
   /* initialize local time before entering sandbox */
   if (clock_gettime(RUNLIMIT_CLOCK_MONOTONIC, &now) < 0)
@@ -119,9 +120,9 @@ main(int argc, char *argv[])
         break;
 
       case 'i':
-        intensity = strtonum(optarg, 1, UINT_MAX, NULL);
+        intensity = strtonum(optarg, 1, UINT_MAX, &errstr);
         if (errno)
-          err(EXIT_FAILURE, "strtonum: %s", optarg);
+          err(EXIT_FAILURE, "strtonum: %s: %s", optarg, errstr);
         break;
 
       case 'n':
@@ -133,9 +134,9 @@ main(int argc, char *argv[])
         break;
 
       case 'p':
-        period = strtonum(optarg, 1, INT_MAX, NULL);
+        period = strtonum(optarg, 1, INT_MAX, &errstr);
         if (errno)
-          err(EXIT_FAILURE, "strtonum: %s", optarg);
+          err(EXIT_FAILURE, "strtonum: %s: %s", optarg, errstr);
         break;
 
       case 'v':
