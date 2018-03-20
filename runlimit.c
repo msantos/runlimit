@@ -58,10 +58,9 @@ typedef struct {
 
 enum {
   OPT_DRYRUN = 1,
-  OPT_WAIT   = 2,
-  OPT_PRINT  = 4,
-  OPT_FILE   = 8,
-  OPT_ZERO   = 16,
+  OPT_PRINT  = 2,
+  OPT_FILE   = 4,
+  OPT_ZERO   = 8,
 };
 
 static const struct option long_options[] =
@@ -72,7 +71,6 @@ static const struct option long_options[] =
   {"dryrun",      no_argument,        NULL, 'n'},
   {"print",       no_argument,        NULL, 'P'},
   {"verbose",     no_argument,        NULL, 'v'},
-  {"wait",        no_argument,        NULL, 'w'},
   {"zero",        no_argument,        NULL, 'z'},
   {"help",        no_argument,        NULL, 'h'},
   {NULL,          0,                  NULL, 0}
@@ -109,7 +107,7 @@ main(int argc, char *argv[])
   if (clock_gettime(RUNLIMIT_CLOCK_MONOTONIC, &now) < 0)
     err(EXIT_ERRNO, "clock_gettime(CLOCK_MONOTONIC)");
 
-  while ((ch = getopt_long(argc, argv, "d:hi:nPp:vwz",
+  while ((ch = getopt_long(argc, argv, "d:hi:nPp:vz",
           long_options, NULL)) != -1) {
     switch (ch) {
       case 'd':
@@ -141,10 +139,6 @@ main(int argc, char *argv[])
 
       case 'v':
         verbose++;
-        break;
-
-      case 'w':
-        opt |= OPT_WAIT;
         break;
 
       case 'z':
@@ -219,13 +213,6 @@ main(int argc, char *argv[])
     default:
       if (ap->intensity >= intensity) {
         VERBOSE(1, "error: threshold reached\n");
-        if (opt & OPT_WAIT) {
-          int sleepfor = remaining;
-          while (sleepfor > 0)
-            sleepfor = sleep(sleepfor);
-          if (execvp(argv[0], argv) < 0)
-            err(EXIT_ERRNO, "execve");
-        }
         rv = 111;
       }
       else {
@@ -367,7 +354,6 @@ usage()
       "version: %s (using %s sandbox)\n\n"
       "-i, --intensity <count>  number of restarts\n"
       "-p, --period <seconds>   time period\n"
-      "-w, --wait               wait until period expires\n"
       "-n, --dryrun             do nothing\n"
       "-P, --print              print remaining time\n"
       "-v, --verbose            verbose mode\n",
