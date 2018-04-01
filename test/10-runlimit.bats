@@ -11,14 +11,14 @@ teardown() {
   runlimit -i 100 -p 120 test
   runlimit -i 100 -p 120 test
   runlimit -i 100 -p 120 test
-  run runlimit -v -i 100 -p 120 test
+  run runlimit -vv -i 100 -p 120 test
 cat << EOF
 $output
 EOF
   [ "${lines[5]}" = "count=4" ]
 
   runlimit -z -i 100 -p 120 test
-  run runlimit -v -i 100 -p 120 test
+  run runlimit -vv -i 100 -p 120 test
 cat << EOF
 $output
 EOF
@@ -27,7 +27,7 @@ EOF
 
 @test "runlimit: shmem: under threshold" {
   runlimit -i 2 -p 10 test
-  run runlimit -v -i 2 -p 10 test
+  run runlimit -vv -i 2 -p 10 test
 cat << EOF
 $output
 EOF
@@ -37,7 +37,7 @@ EOF
 @test "runlimit: shmem: above threshold" {
   runlimit -i 2 -p 10 test
   runlimit -i 2 -p 10 test
-  run runlimit -v -i 2 -p 10 test
+  run runlimit -vv -i 2 -p 10 test
 cat << EOF
 $output
 EOF
@@ -46,7 +46,7 @@ EOF
 
 @test "runlimit: file: under threshold" {
   runlimit -d . -i 2 -p 10 test
-  run runlimit -v -d . -i 2 -p 10 test
+  run runlimit -vv -d . -i 2 -p 10 test
 cat << EOF
 $output
 EOF
@@ -56,7 +56,7 @@ EOF
 @test "runlimit: file: above threshold" {
   runlimit -d . -i 2 -p 10 test
   runlimit -d . -i 2 -p 10 test
-  run runlimit -d . -v -i 2 -p 10 test
+  run runlimit -d . -vv -i 2 -p 10 test
 cat << EOF
 $output
 EOF

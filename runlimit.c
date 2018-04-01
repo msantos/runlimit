@@ -177,7 +177,7 @@ main(int argc, char *argv[])
   if (diff < 0)
     diff = 0;
 
-  VERBOSE(1,
+  VERBOSE(2,
       "now=%lu\n"
       "last=%lu\n"
       "diff=%u\n"
@@ -212,7 +212,8 @@ main(int argc, char *argv[])
 
     default:
       if (ap->intensity >= intensity) {
-        VERBOSE(1, "error: threshold reached\n");
+        VERBOSE(1, "error: threshold reached: %u/%u (%d seconds)\n",
+            ap->intensity, intensity, period);
         rv = 111;
       }
       else {
