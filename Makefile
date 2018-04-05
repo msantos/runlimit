@@ -2,7 +2,8 @@
 
 PROG=   runlimit
 SRCS=   runlimit.c \
-        strtonum.c
+        strtonum.c \
+        sandbox_null.c
 
 UNAME_SYS := $(shell uname -s)
 ifeq ($(UNAME_SYS), Linux)

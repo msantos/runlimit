@@ -1,5 +1,4 @@
-/*
- * Copyright (c) 2018, Michael Santos <michael.santos@gmail.com>
+/* Copyright (c) 2018, Michael Santos <michael.santos@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,10 +12,16 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-int sandbox_init();
-int sandbox_mmap();
+#ifdef RUNLIMIT_SANDBOX_null
+  int
+sandbox_init()
+{
+  return 0;
+}
 
-#ifndef HAVE_STRTONUM
-long long strtonum(const char *numstr, long long minval, long long maxval,
-            const char **errstrp);
+  int
+sandbox_mmap()
+{
+  return 0;
+}
 #endif

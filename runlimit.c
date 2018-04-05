@@ -107,6 +107,9 @@ main(int argc, char *argv[])
   if (clock_gettime(RUNLIMIT_CLOCK_MONOTONIC, &now) < 0)
     err(EXIT_ERRNO, "clock_gettime(CLOCK_MONOTONIC)");
 
+  if (sandbox_init() < 0)
+    err(3, "sandbox_init");
+
   while ((ch = getopt_long(argc, argv, "d:hi:nPp:vz",
           long_options, NULL)) != -1) {
     switch (ch) {
@@ -167,6 +170,9 @@ main(int argc, char *argv[])
 
   if (fd < 0)
     err(EXIT_ERRNO, "state_open");
+
+  if (sandbox_mmap() < 0)
+    err(3, "sandbox_mmap");
 
   ap = mmap(NULL, sizeof(runlimit_t), PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 
