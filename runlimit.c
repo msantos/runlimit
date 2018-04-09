@@ -169,7 +169,7 @@ main(int argc, char *argv[])
   fd = state_open(name, opt);
 
   if (fd < 0)
-    err(EXIT_ERRNO, "state_open");
+    err(EXIT_ERRNO, "state_open: %s", name);
 
   if (sandbox_mmap() < 0)
     err(3, "sandbox_mmap");
