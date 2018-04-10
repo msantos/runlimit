@@ -218,7 +218,7 @@ main(int argc, char *argv[])
 
     default:
       if (ap->intensity >= intensity) {
-        VERBOSE(1, "error: threshold reached: %u/%u (%d seconds)\n",
+        VERBOSE(1, "error: threshold: %u/%u (%ds)\n",
             ap->intensity, intensity, period);
         rv = 111;
       }
