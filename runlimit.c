@@ -339,7 +339,7 @@ check_state(int fd)
     goto RUNLIMIT_ERR;
   }
 
-  if (buf.st_size != sizeof(runlimit_t)) {
+  if (buf.st_size < sizeof(runlimit_t)) {
     errno = EFAULT;
     goto RUNLIMIT_ERR;
   }

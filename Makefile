@@ -11,20 +11,26 @@ ifeq ($(UNAME_SYS), Linux)
     CFLAGS ?= -D_FORTIFY_SOURCE=2 -O2 -fstack-protector-strong \
               -Wformat -Werror=format-security \
               -fno-strict-aliasing
-		LDFLAGS ?= -lrt
+		LDFLAGS ?= -lrt -Wl,-z,relro,-z,now
 	  RUNLIMIT_SANDBOX ?= seccomp
 else ifeq ($(UNAME_SYS), OpenBSD)
     CFLAGS ?= -DHAVE_STRTONUM \
               -D_FORTIFY_SOURCE=2 -O2 -fstack-protector-strong \
               -Wformat -Werror=format-security \
               -fno-strict-aliasing
+	  LDFLAGS ?= -Wl,-z,relro,-z,now
 	  RUNLIMIT_SANDBOX ?= pledge
 else ifeq ($(UNAME_SYS), FreeBSD)
     CFLAGS ?= -DHAVE_STRTONUM \
               -D_FORTIFY_SOURCE=2 -O2 -fstack-protector-strong \
               -Wformat -Werror=format-security \
               -fno-strict-aliasing
+	  LDFLAGS ?= -Wl,-z,relro,-z,now
 	  RUNLIMIT_SANDBOX ?= capsicum
+else ifeq ($(UNAME_SYS), Darwin)
+    CFLAGS ?= -D_FORTIFY_SOURCE=2 -O2 -fstack-protector-strong \
+              -Wformat -Werror=format-security \
+              -fno-strict-aliasing
 endif
 
 RM ?= rm
@@ -36,7 +42,7 @@ CFLAGS += $(RUNLIMIT_CFLAGS) \
           -DRUNLIMIT_SANDBOX=\"$(RUNLIMIT_SANDBOX)\" \
           -DRUNLIMIT_SANDBOX_$(RUNLIMIT_SANDBOX)
 
-LDFLAGS += $(RUNLIMIT_LDFLAGS) -Wl,-z,relro,-z,now
+LDFLAGS += $(RUNLIMIT_LDFLAGS)
 
 all: $(PROG)
 
