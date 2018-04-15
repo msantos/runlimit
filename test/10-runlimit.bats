@@ -62,3 +62,12 @@ $output
 EOF
   [ "$status" == "111" ]
 }
+
+@test "runlimit: file: open failure" {
+  mkdir -p /tmp/runlimit-$UID-exists
+  run runlimit -d /tmp -vv -i 2 -p 10 exists
+cat << EOF
+$output
+EOF
+  [ "$status" -gt 127 ]
+}
