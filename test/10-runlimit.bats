@@ -31,7 +31,7 @@ EOF
 cat << EOF
 $output
 EOF
-  [ "$status" == "0" ]
+  [ "$status" -eq 0 ]
 }
 
 @test "runlimit: shmem: above threshold" {
@@ -41,7 +41,7 @@ EOF
 cat << EOF
 $output
 EOF
-  [ "$status" == "111" ]
+  [ "$status" -eq 111 ]
 }
 
 @test "runlimit: file: under threshold" {
@@ -50,7 +50,7 @@ EOF
 cat << EOF
 $output
 EOF
-  [ "$status" == "0" ]
+  [ "$status" -eq 0 ]
 }
 
 @test "runlimit: file: above threshold" {
@@ -60,7 +60,7 @@ EOF
 cat << EOF
 $output
 EOF
-  [ "$status" == "111" ]
+  [ "$status" -eq 111 ]
 }
 
 @test "runlimit: file: open failure" {
