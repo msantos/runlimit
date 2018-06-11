@@ -4,6 +4,7 @@ PROG=   runlimit
 SRCS=   runlimit.c \
         strtonum.c \
         sandbox_null.c \
+        sandbox_pledge.c \
         sandbox_rlimit.c
 
 UNAME_SYS := $(shell uname -s)
