@@ -3,6 +3,7 @@
 PROG=   runlimit
 SRCS=   runlimit.c \
         strtonum.c \
+        sandbox_capsicum.c \
         sandbox_null.c \
         sandbox_pledge.c \
         sandbox_rlimit.c
