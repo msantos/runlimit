@@ -6,7 +6,8 @@ SRCS=   runlimit.c \
         sandbox_capsicum.c \
         sandbox_null.c \
         sandbox_pledge.c \
-        sandbox_rlimit.c
+        sandbox_rlimit.c \
+        sandbox_seccomp.c
 
 UNAME_SYS := $(shell uname -s)
 ifeq ($(UNAME_SYS), Linux)
