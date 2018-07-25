@@ -363,6 +363,8 @@ usage()
       "-p, --period <seconds>   time period\n"
       "-n, --dryrun             do nothing\n"
       "-P, --print              print remaining time\n"
+      "-z, --zero               zero state\n"
+      "-d, --directory          save state in directory\n"
       "-v, --verbose            verbose mode\n",
       RUNLIMIT_VERSION,
       RUNLIMIT_SANDBOX);
