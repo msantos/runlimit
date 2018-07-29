@@ -115,6 +115,9 @@ sandbox_init()
 #ifdef __NR_fstat64
     SC_ALLOW(fstat64),
 #endif
+#ifdef __NR_ftruncate
+    SC_ALLOW(ftruncate),
+#endif
 #ifdef __NR_getuid
     SC_ALLOW(getuid),
 #endif
