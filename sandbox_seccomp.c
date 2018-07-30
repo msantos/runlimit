@@ -148,11 +148,17 @@ sandbox_init()
 #ifdef __NR_readv
     SC_ALLOW(readv),
 #endif
+#ifdef __NR_shm_unlink
+    SC_ALLOW(shm_unlink),
+#endif
 #ifdef __NR_sigaction
     SC_ALLOW(sigaction),
 #endif
 #ifdef __NR_sigprocmask
     SC_ALLOW(sigprocmask),
+#endif
+#ifdef __NR_unlink
+    SC_ALLOW(unlink),
 #endif
 #ifdef __NR_uname
     SC_ALLOW(uname),

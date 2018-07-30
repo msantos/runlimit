@@ -248,11 +248,21 @@ shmem_open(char *name)
 
   fd = shm_open(name, O_RDWR, 0);
 
-  if (fd > -1)
-    return check_state(fd);
+  if (fd > -1 && check_state(fd) > -1)
+    return fd;
 
-  if (errno == ENOENT)
-    return shmem_create(name);
+  switch (errno) {
+    case EFAULT:
+      if (shm_unlink(name) < 0)
+        return -1;
+      break;
+
+    case ENOENT:
+      return shmem_create(name);
+
+    default:
+      break;
+  }
 
   return -1;
 }
@@ -271,7 +281,8 @@ file_open(char *name)
     case EFAULT:
       if (unlink(name) < 0)
         return -1;
-      /* fall through */
+      break;
+
     case ENOENT:
       return file_create(name);
 
