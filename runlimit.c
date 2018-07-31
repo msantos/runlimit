@@ -76,13 +76,21 @@ static const struct option long_options[] =
   {NULL,          0,                  NULL, 0}
 };
 
-static int state_open(char *name, int opt);
-static int shmem_open(char *name);
-static int shmem_create(char *name);
-static int file_open(char *name);
-static int file_create(char *name);
+static int state_open(
+    char *name,
+    int (*open)(const char *, int, mode_t),
+    int (*unlink)(const char *)
+    );
+
+static int state_create(
+    char *name,
+    int (*open)(const char *, int, mode_t),
+    int (*unlink)(const char *)
+    );
 static int check_state(int fd);
 static void usage();
+
+int open3(const char *pathname, int flags, mode_t mode);
 
   int
 main(int argc, char *argv[])
@@ -166,7 +174,9 @@ main(int argc, char *argv[])
   if (n < 0 || n >= sizeof(name))
     usage();
 
-  fd = state_open(name, opt);
+  fd = (opt & OPT_FILE)
+    ? state_open(name, &open3, &unlink)
+    : state_open(name, &shm_open, &shm_unlink);
 
   if (fd < 0)
     err(EXIT_ERRNO, "state_open: %s", name);
@@ -236,29 +246,24 @@ RUNLIMIT_SYNC:
 }
 
   static int
-state_open(char *name, int opt)
-{
-  return (opt & OPT_FILE) ? file_open(name) : shmem_open(name);
-}
-
-  static int
-shmem_open(char *name)
+state_open(char *name, int (*open)(const char *, int, mode_t),
+    int (*unlink)(const char *))
 {
   int fd;
 
-  fd = shm_open(name, O_RDWR, 0);
+  fd = (*open)((const char *)name, O_RDWR, 0);
 
   if (fd > -1 && check_state(fd) > -1)
     return fd;
 
   switch (errno) {
     case EFAULT:
-      if (shm_unlink(name) < 0)
+      if ((*unlink)((const char *)name) < 0)
         return -1;
       break;
 
     case ENOENT:
-      return shmem_create(name);
+      return state_create(name, open, unlink);
 
     default:
       break;
@@ -268,38 +273,12 @@ shmem_open(char *name)
 }
 
   static int
-file_open(char *name)
+state_create(char *name, int (*open)(const char *, int, mode_t),
+    int (*unlink)(const char *))
 {
   int fd;
 
-  fd = open(name, O_RDWR);
-
-  if (fd > -1 && check_state(fd) > -1)
-    return fd;
-
-  switch (errno) {
-    case EFAULT:
-      if (unlink(name) < 0)
-        return -1;
-      break;
-
-    case ENOENT:
-      return file_create(name);
-
-    default:
-      break;
-  }
-
-  return -1;
-}
-
-
-  static int
-shmem_create(char *name)
-{
-  int fd;
-
-  fd = shm_open(name, O_RDWR|O_CREAT|O_EXCL, 0600);
+  fd = (*open)((const char *)name, O_RDWR|O_CREAT|O_EXCL, 0600);
 
   if (fd < 0)
     return -1;
@@ -307,28 +286,7 @@ shmem_create(char *name)
   if (ftruncate(fd, sizeof(runlimit_t)) < 0) {
     int oerrno = errno;
     (void)close(fd);
-    (void)shm_unlink(name);
-    errno = oerrno;
-    return -1;
-  }
-
-  return fd;
-}
-
-  static int
-file_create(char *name)
-{
-  int fd;
-
-  fd = open(name, O_RDWR|O_CREAT|O_EXCL, 0600);
-
-  if (fd < 0)
-    return -1;
-
-  if (ftruncate(fd, sizeof(runlimit_t)) < 0) {
-    int oerrno = errno;
-    (void)close(fd);
-    (void)unlink(name);
+    (void)(*unlink)((const char *)name);
     errno = oerrno;
     return -1;
   }
@@ -363,6 +321,12 @@ RUNLIMIT_ERR:
   errno = oerrno;
 
   return -1;
+}
+
+  int
+open3(const char *pathname, int flags, mode_t mode)
+{
+  return open(pathname, flags, mode);
 }
 
   static void
