@@ -59,8 +59,7 @@ typedef struct {
 enum {
   OPT_DRYRUN = 1,
   OPT_PRINT  = 2,
-  OPT_FILE   = 4,
-  OPT_ZERO   = 8,
+  OPT_ZERO   = 4,
 };
 
 static const struct option long_options[] =
@@ -90,7 +89,21 @@ static int state_create(
 static int check_state(int fd);
 static void usage();
 
-int open3(const char *pathname, int flags, mode_t mode);
+int file_open(const char *pathname, int flags, mode_t mode);
+
+enum {
+  RUNLIMIT_SHMEM,
+  RUNLIMIT_FILE
+};
+
+struct {
+  int (*open)(const char *, int, mode_t);
+  int (*unlink)(const char *);
+} runlimit_fn[] = {
+  {&shm_open, &shm_unlink},
+  {&file_open, &unlink},
+  {NULL, NULL}
+};
 
   int
 main(int argc, char *argv[])
@@ -106,6 +119,7 @@ main(int argc, char *argv[])
   int remaining;
   int opt = 0;
   int verbose = 0;
+  int type = RUNLIMIT_SHMEM;
   int ch;
   int n = 0;
   int rv = 0;
@@ -122,7 +136,7 @@ main(int argc, char *argv[])
           long_options, NULL)) != -1) {
     switch (ch) {
       case 'd':
-        opt |= OPT_FILE;
+        type = RUNLIMIT_FILE;
         path = strdup(optarg);
         if (path == NULL)
           err(EXIT_FAILURE, "strdup");
@@ -174,9 +188,7 @@ main(int argc, char *argv[])
   if (n < 0 || n >= sizeof(name))
     usage();
 
-  fd = (opt & OPT_FILE)
-    ? state_open(name, &open3, &unlink)
-    : state_open(name, &shm_open, &shm_unlink);
+  fd = state_open(name, runlimit_fn[type].open, runlimit_fn[type].unlink);
 
   if (fd < 0)
     err(EXIT_ERRNO, "state_open: %s", name);
@@ -324,7 +336,7 @@ RUNLIMIT_ERR:
 }
 
   int
-open3(const char *pathname, int flags, mode_t mode)
+file_open(const char *pathname, int flags, mode_t mode)
 {
   return open(pathname, flags, mode);
 }
