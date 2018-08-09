@@ -111,7 +111,7 @@ main(int argc, char *argv[])
   int fd;
   runlimit_t *ap;
   char name[MAXPATHLEN] = {0}; /* NAME_MAX-1 */
-  char *path = NULL;
+  char *path;
   u_int32_t intensity = 1;
   int period = 1;
   struct timespec now;
@@ -121,7 +121,7 @@ main(int argc, char *argv[])
   int verbose = 0;
   int type = RUNLIMIT_SHMEM;
   int ch;
-  int n = 0;
+  int n;
   int rv = 0;
   const char *errstr = NULL;
 
