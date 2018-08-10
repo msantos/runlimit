@@ -111,7 +111,7 @@ main(int argc, char *argv[])
   int fd;
   runlimit_t *ap;
   char name[MAXPATHLEN] = {0}; /* NAME_MAX-1 */
-  char *path;
+  char *path = NULL;
   u_int32_t intensity = 1;
   int period = 1;
   struct timespec now;
