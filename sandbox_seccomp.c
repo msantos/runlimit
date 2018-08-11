@@ -14,7 +14,6 @@
  */
 #ifdef RUNLIMIT_SANDBOX_seccomp
 #include <stddef.h>
-#include <errno.h>
 #include <sys/prctl.h>
 #include <sys/syscall.h>
 

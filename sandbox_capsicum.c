@@ -20,8 +20,6 @@
 #include <sys/resource.h>
 #include <sys/capability.h>
 
-#include <errno.h>
-
   int
 sandbox_init()
 {
