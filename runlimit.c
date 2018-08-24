@@ -66,7 +66,7 @@ static const struct option long_options[] =
 {
   {"intensity",   required_argument,  NULL, 'i'},
   {"period",      required_argument,  NULL, 'p'},
-  {"directory",   required_argument,  NULL, 'd'},
+  {"file",        no_argument,        NULL, 'f'},
   {"dryrun",      no_argument,        NULL, 'n'},
   {"print",       no_argument,        NULL, 'P'},
   {"verbose",     no_argument,        NULL, 'v'},
@@ -111,7 +111,6 @@ main(int argc, char *argv[])
   int fd;
   runlimit_t *ap;
   char name[MAXPATHLEN] = {0}; /* NAME_MAX-1 */
-  char *path = NULL;
   u_int32_t intensity = 1;
   int period = 1;
   struct timespec now;
@@ -132,14 +131,11 @@ main(int argc, char *argv[])
   if (sandbox_init() < 0)
     err(3, "sandbox_init");
 
-  while ((ch = getopt_long(argc, argv, "d:hi:nPp:vz",
+  while ((ch = getopt_long(argc, argv, "fhi:nPp:vz",
           long_options, NULL)) != -1) {
     switch (ch) {
-      case 'd':
+      case 'f':
         type = RUNLIMIT_FILE;
-        path = strdup(optarg);
-        if (path == NULL)
-          err(EXIT_FAILURE, "strdup");
         break;
 
       case 'i':
@@ -179,11 +175,7 @@ main(int argc, char *argv[])
   if (argc - optind == 0)
     usage();
 
-  n = snprintf(name, sizeof(name), "%s/%s-%d-%s",
-      path == NULL ? "" : path,
-      __progname,
-      getuid(),
-      argv[optind]);
+  n = snprintf(name, sizeof(name), "%s", argv[optind]);
 
   if (n < 0 || n >= sizeof(name))
     usage();
@@ -344,14 +336,14 @@ file_open(const char *pathname, int flags, mode_t mode)
   static void
 usage()
 {
-  errx(EXIT_FAILURE, "[OPTION] <TAG>\n"
+  errx(EXIT_FAILURE, "[OPTION] <PATH>\n"
       "version: %s (using %s sandbox)\n\n"
       "-i, --intensity <count>  number of restarts\n"
       "-p, --period <seconds>   time period\n"
       "-n, --dryrun             do nothing\n"
       "-P, --print              print remaining time\n"
       "-z, --zero               zero state\n"
-      "-d, --directory          save state in directory\n"
+      "-f, --file               save state in file\n"
       "-v, --verbose            verbose mode\n",
       RUNLIMIT_VERSION,
       RUNLIMIT_SANDBOX);

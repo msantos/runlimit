@@ -1,24 +1,24 @@
 #!/usr/bin/env bats
 
 teardown() {
-  runlimit -z test
-  runlimit -d . -z test
+  runlimit -z /runlimit-test
+  runlimit -f -z runlimit-test
 }
 
 @test "runlimit: zero state" {
-  runlimit -z test
-  runlimit -i 100 -p 120 test
-  runlimit -i 100 -p 120 test
-  runlimit -i 100 -p 120 test
-  runlimit -i 100 -p 120 test
-  run runlimit -vv -i 100 -p 120 test
+  runlimit -z runlimit-test
+  runlimit -i 100 -p 120 /runlimit-test
+  runlimit -i 100 -p 120 /runlimit-test
+  runlimit -i 100 -p 120 /runlimit-test
+  runlimit -i 100 -p 120 /runlimit-test
+  run runlimit -vv -i 100 -p 120 /runlimit-test
 cat << EOF
 $output
 EOF
   [ "${lines[5]}" = "count=4" ]
 
-  runlimit -z -i 100 -p 120 test
-  run runlimit -vv -i 100 -p 120 test
+  runlimit -z -i 100 -p 120 /runlimit-test
+  run runlimit -vv -i 100 -p 120 /runlimit-test
 cat << EOF
 $output
 EOF
@@ -26,8 +26,8 @@ EOF
 }
 
 @test "runlimit: shmem: under threshold" {
-  runlimit -i 2 -p 10 test
-  run runlimit -vv -i 2 -p 10 test
+  runlimit -i 2 -p 10 /runlimit-test
+  run runlimit -vv -i 2 -p 10 /runlimit-test
 cat << EOF
 $output
 EOF
@@ -35,9 +35,9 @@ EOF
 }
 
 @test "runlimit: shmem: above threshold" {
-  runlimit -i 2 -p 10 test
-  runlimit -i 2 -p 10 test
-  run runlimit -vv -i 2 -p 10 test
+  runlimit -i 2 -p 10 /runlimit-test
+  runlimit -i 2 -p 10 /runlimit-test
+  run runlimit -vv -i 2 -p 10 /runlimit-test
 cat << EOF
 $output
 EOF
@@ -45,8 +45,8 @@ EOF
 }
 
 @test "runlimit: file: under threshold" {
-  runlimit -d . -i 2 -p 10 test
-  run runlimit -vv -d . -i 2 -p 10 test
+  runlimit -f -i 2 -p 10 runlimit-test
+  run runlimit -vv -f -i 2 -p 10 runlimit-test
 cat << EOF
 $output
 EOF
@@ -54,9 +54,9 @@ EOF
 }
 
 @test "runlimit: file: above threshold" {
-  runlimit -d . -i 2 -p 10 test
-  runlimit -d . -i 2 -p 10 test
-  run runlimit -d . -vv -i 2 -p 10 test
+  runlimit -f -i 2 -p 10 runlimit-test
+  runlimit -f -i 2 -p 10 runlimit-test
+  run runlimit -f -vv -i 2 -p 10 runlimit-test
 cat << EOF
 $output
 EOF
@@ -64,8 +64,9 @@ EOF
 }
 
 @test "runlimit: file: open failure" {
-  mkdir -p /tmp/runlimit-$UID-exists
-  run runlimit -d /tmp -vv -i 2 -p 10 exists
+  FILE="/tmp/runlimit-$UID-exists"
+  mkdir -p "$FILE"
+  run runlimit -f -vv -i 2 -p 10 "$FILE"
 cat << EOF
 $output
 EOF

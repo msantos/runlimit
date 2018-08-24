@@ -14,7 +14,7 @@ Example
 #!/bin/sh
 
 # 6 login failures in 30 minutes
-runlimit -i 6 -p 1800 "${USER_NAME}"
+runlimit -i 6 -p 1800 "/runlimit-${USER_NAME}"
 case $? in
   111) echo "Authentication failure limit reached"
        exit 6
