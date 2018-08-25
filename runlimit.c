@@ -307,11 +307,6 @@ check_state(int fd)
   if (fstat(fd, &buf) < 0)
     goto RUNLIMIT_ERR;
 
-  if (buf.st_uid != getuid()) {
-    errno = EPERM;
-    goto RUNLIMIT_ERR;
-  }
-
   if (buf.st_size < sizeof(runlimit_t)) {
     errno = EFAULT;
     goto RUNLIMIT_ERR;
