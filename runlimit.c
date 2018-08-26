@@ -76,13 +76,13 @@ static const struct option long_options[] =
 };
 
 static int state_open(
-    char *name,
+    const char *name,
     int (*open)(const char *, int, mode_t),
     int (*unlink)(const char *)
     );
 
 static int state_create(
-    char *name,
+    const char *name,
     int (*open)(const char *, int, mode_t),
     int (*unlink)(const char *)
     );
@@ -110,7 +110,7 @@ main(int argc, char *argv[])
 {
   int fd;
   runlimit_t *ap;
-  char name[MAXPATHLEN] = {0}; /* NAME_MAX-1 */
+  const char *name = NULL;
   u_int32_t intensity = 1;
   int period = 1;
   struct timespec now;
@@ -120,7 +120,6 @@ main(int argc, char *argv[])
   int verbose = 0;
   int type = RUNLIMIT_SHMEM;
   int ch;
-  int n;
   int rv = 0;
   const char *errstr = NULL;
 
@@ -175,10 +174,10 @@ main(int argc, char *argv[])
   if (argc - optind == 0)
     usage();
 
-  n = snprintf(name, sizeof(name), "%s", argv[optind]);
+  name = strdup(argv[optind]);
 
-  if (n < 0 || n >= sizeof(name))
-    usage();
+  if (name == NULL)
+    err(EXIT_ERRNO, "strdup");
 
   fd = state_open(name, runlimit_fn[type].open, runlimit_fn[type].unlink);
 
@@ -250,19 +249,19 @@ RUNLIMIT_SYNC:
 }
 
   static int
-state_open(char *name, int (*open)(const char *, int, mode_t),
+state_open(const char *name, int (*open)(const char *, int, mode_t),
     int (*unlink)(const char *))
 {
   int fd;
 
-  fd = (*open)((const char *)name, O_RDWR, 0);
+  fd = (*open)(name, O_RDWR, 0);
 
   if (fd > -1 && check_state(fd) > -1)
     return fd;
 
   switch (errno) {
     case EFAULT:
-      if ((*unlink)((const char *)name) < 0)
+      if ((*unlink)(name) < 0)
         return -1;
       break;
 
@@ -277,12 +276,12 @@ state_open(char *name, int (*open)(const char *, int, mode_t),
 }
 
   static int
-state_create(char *name, int (*open)(const char *, int, mode_t),
+state_create(const char *name, int (*open)(const char *, int, mode_t),
     int (*unlink)(const char *))
 {
   int fd;
 
-  fd = (*open)((const char *)name, O_RDWR|O_CREAT|O_EXCL, 0600);
+  fd = (*open)(name, O_RDWR|O_CREAT|O_EXCL, 0600);
 
   if (fd < 0)
     return -1;
@@ -290,7 +289,7 @@ state_create(char *name, int (*open)(const char *, int, mode_t),
   if (ftruncate(fd, sizeof(runlimit_t)) < 0) {
     int oerrno = errno;
     (void)close(fd);
-    (void)(*unlink)((const char *)name);
+    (void)(*unlink)(name);
     errno = oerrno;
     return -1;
   }
