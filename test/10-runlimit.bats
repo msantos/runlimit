@@ -6,7 +6,7 @@ teardown() {
 }
 
 @test "runlimit: zero state" {
-  runlimit -z runlimit-test
+  runlimit -z /runlimit-test
   runlimit -i 100 -p 120 /runlimit-test
   runlimit -i 100 -p 120 /runlimit-test
   runlimit -i 100 -p 120 /runlimit-test
