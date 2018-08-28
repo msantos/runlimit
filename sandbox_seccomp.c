@@ -223,6 +223,12 @@ sandbox_mmap()
 #ifdef __NR_exit_group
     SC_ALLOW(exit_group),
 #endif
+#ifdef __NR_fstat
+    SC_ALLOW(fstat),
+#endif
+#ifdef __NR_fstat64
+    SC_ALLOW(fstat64),
+#endif
 #ifdef __NR_mmap
     SC_ALLOW(mmap),
 #endif
