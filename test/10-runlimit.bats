@@ -72,3 +72,12 @@ $output
 EOF
   [ "$status" -gt 127 ]
 }
+
+@test "runlimit: print remaining seconds" {
+  run runlimit -P /runlimit-test 2>&1
+cat << EOF
+$output
+EOF
+  [ "$output" -eq 0 ]
+  [ "$status" -eq 0 ]
+}
