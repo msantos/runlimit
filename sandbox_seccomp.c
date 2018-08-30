@@ -16,9 +16,11 @@
 #include <stddef.h>
 #include <sys/prctl.h>
 #include <sys/syscall.h>
+#include <errno.h>
 
 #include <linux/filter.h>
 #include <linux/seccomp.h>
+#include <linux/audit.h>
 #include <linux/audit.h>
 
 /* macros from openssh-7.2/sandbox-seccomp-filter.c */
@@ -85,6 +87,9 @@ sandbox_init()
             offsetof(struct seccomp_data, nr)),
 
         /* Syscalls to non-fatally deny */
+#ifdef __NR_ioctl
+    SC_DENY(ioctl, ENOTTY),
+#endif
 
         /* Syscalls to allow */
 #ifdef __NR_prctl
@@ -216,6 +221,9 @@ sandbox_mmap()
             offsetof(struct seccomp_data, nr)),
 
         /* Syscalls to non-fatally deny */
+#ifdef __NR_ioctl
+    SC_DENY(ioctl, ENOTTY),
+#endif
 
         /* Syscalls to allow */
 

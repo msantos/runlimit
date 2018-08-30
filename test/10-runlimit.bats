@@ -81,3 +81,8 @@ EOF
   [ "$output" -eq 0 ]
   [ "$status" -eq 0 ]
 }
+
+@test "sandbox: write to /dev/null" {
+  runlimit -P /runlimit-test > /dev/null
+  [ "$?" -eq 0 ]
+}
