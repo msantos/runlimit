@@ -5,8 +5,23 @@ runlimit is a POC for implementing restart intensity limits for possibly
 unrelated processes running under a supervisor such as daemontools'
 svscan(8).
 
+Usage
+-----
+
+    runlimit [*options*] *path*
+
 Example
 -------
+
+    # 5 runs in 60 seconds
+
+    # use shmem
+    runlimit --intensity=5 --period=60 /state-${USER}
+
+    # use a file
+    mkdir -p /tmp/${USER}
+    runlimit --intensity=5 --period=60 --file /tmp/${USER}/state
+
 
 ### Freeradius Exec Authenticator
 
@@ -28,3 +43,6 @@ esac
 [ "$USER_PASSWORD" = "this-is-not-a-real-password" ]
 runlimit -z ${USER_NAME}
 ~~~
+
+Options
+-------
