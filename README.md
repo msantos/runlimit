@@ -46,3 +46,24 @@ runlimit -z ${USER_NAME}
 
 Options
 -------
+
+-i, --intensity *count*
+:   number of restarts
+
+-p, --period *seconds*
+:   time period in seconds
+
+-n, --dryrun
+:   do nothing
+
+-P, --print
+:   print remaining time
+
+-z, --zero
+:   zero state
+
+-f, --file
+:   save state in file
+
+-v, --verbose
+:   verbose mode
