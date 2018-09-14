@@ -67,3 +67,15 @@ Options
 
 -v, --verbose
 :   verbose mode
+
+Exit Status
+-----------
+
+111
+:     threshold reached
+
+128
+:     EPERM
+
+139
+:     ENOMEM
