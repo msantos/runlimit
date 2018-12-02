@@ -25,5 +25,4 @@ sandbox_mmap()
 {
   return 0;
 }
-#else
 #endif
