@@ -39,7 +39,7 @@ endif
 RM ?= rm
 
 RUNLIMIT_SANDBOX ?= rlimit
-RUNLIMIT_CFLAGS ?= -g -Wall -fwrapv
+RUNLIMIT_CFLAGS ?= -g -Wall -fwrapv -pedantic
 
 CFLAGS += $(RUNLIMIT_CFLAGS) \
           -DRUNLIMIT_SANDBOX=\"$(RUNLIMIT_SANDBOX)\" \
