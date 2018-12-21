@@ -13,8 +13,9 @@ UNAME_SYS := $(shell uname -s)
 ifeq ($(UNAME_SYS), Linux)
     CFLAGS ?= -D_FORTIFY_SOURCE=2 -O2 -fstack-protector-strong \
               -Wformat -Werror=format-security \
+              -pie -fPIE \
               -fno-strict-aliasing
-		LDFLAGS ?= -lrt -Wl,-z,relro,-z,now
+		LDFLAGS ?= -lrt -Wl,-z,relro,-z,now -Wl,-z,noexecstack
 	  RUNLIMIT_SANDBOX ?= seccomp
 else ifeq ($(UNAME_SYS), OpenBSD)
     CFLAGS ?= -DHAVE_STRTONUM \
