@@ -197,14 +197,14 @@ main(int argc, char *argv[])
     diff = 0;
 
   VERBOSE(2,
-      "now=%lu\n"
-      "last=%lu\n"
+      "now=%llu\n"
+      "last=%llu\n"
       "diff=%u\n"
       "intensity=%u\n"
       "period=%d\n"
       "count=%u\n",
-      now.tv_sec,
-      ap->now.tv_sec,
+      (long long)now.tv_sec,
+      (long long)ap->now.tv_sec,
       diff,
       intensity,
       period,
