@@ -177,6 +177,9 @@ sandbox_init()
 #ifdef __NR_open
     SC_ALLOW(open),
 #endif
+#ifdef __NR_openat
+    SC_ALLOW(openat),
+#endif
 #ifdef __NR_fstatat
     SC_ALLOW(fstatat),
 #endif
