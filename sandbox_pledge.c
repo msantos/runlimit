@@ -16,15 +16,7 @@
 #ifdef RUNLIMIT_SANDBOX_pledge
 #include <unistd.h>
 
-  int
-sandbox_init()
-{
-  return pledge("stdio rpath wpath cpath", NULL);
-}
+int sandbox_init() { return pledge("stdio rpath wpath cpath", NULL); }
 
-  int
-sandbox_mmap()
-{
-  return pledge("stdio wpath", NULL);
-}
+int sandbox_mmap() { return pledge("stdio wpath", NULL); }
 #endif

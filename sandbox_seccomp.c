@@ -14,15 +14,15 @@
  */
 #include "runlimit.h"
 #ifdef RUNLIMIT_SANDBOX_seccomp
+#include <errno.h>
 #include <stddef.h>
 #include <sys/prctl.h>
 #include <sys/syscall.h>
-#include <errno.h>
 
+#include <linux/audit.h>
+#include <linux/audit.h>
 #include <linux/filter.h>
 #include <linux/seccomp.h>
-#include <linux/audit.h>
-#include <linux/audit.h>
 
 /* macros from openssh-7.2/sandbox-seccomp-filter.c */
 
@@ -31,27 +31,28 @@
 
 /* Use a signal handler to emit violations when debugging */
 #ifdef SANDBOX_SECCOMP_FILTER_DEBUG
-# undef SECCOMP_FILTER_FAIL
-# define SECCOMP_FILTER_FAIL SECCOMP_RET_TRAP
+#undef SECCOMP_FILTER_FAIL
+#define SECCOMP_FILTER_FAIL SECCOMP_RET_TRAP
 #endif /* SANDBOX_SECCOMP_FILTER_DEBUG */
 
 /* Simple helpers to avoid manual errors (but larger BPF programs). */
-#define SC_DENY(_nr, _errno) \
-    BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_ ## _nr, 0, 1), \
-    BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ERRNO|(_errno))
-#define SC_ALLOW(_nr) \
-    BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_ ## _nr, 0, 1), \
-    BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW)
-#define SC_ALLOW_ARG(_nr, _arg_nr, _arg_val) \
-    BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_ ## _nr, 0, 4), \
-    /* load first syscall argument */ \
-    BPF_STMT(BPF_LD+BPF_W+BPF_ABS, \
-        offsetof(struct seccomp_data, args[(_arg_nr)])), \
-    BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, (_arg_val), 0, 1), \
-    BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW), \
-    /* reload syscall number; all rules expect it in accumulator */ \
-    BPF_STMT(BPF_LD+BPF_W+BPF_ABS, \
-        offsetof(struct seccomp_data, nr))
+#define SC_DENY(_nr, _errno)                                                   \
+  BPF_JUMP(BPF_JMP + BPF_JEQ + BPF_K, __NR_##_nr, 0, 1)                        \
+  , BPF_STMT(BPF_RET + BPF_K, SECCOMP_RET_ERRNO | (_errno))
+#define SC_ALLOW(_nr)                                                          \
+  BPF_JUMP(BPF_JMP + BPF_JEQ + BPF_K, __NR_##_nr, 0, 1)                        \
+  , BPF_STMT(BPF_RET + BPF_K, SECCOMP_RET_ALLOW)
+#define SC_ALLOW_ARG(_nr, _arg_nr, _arg_val)                                   \
+  BPF_JUMP(BPF_JMP + BPF_JEQ + BPF_K, __NR_##_nr, 0, 4)                        \
+  , /* load first syscall argument */                                          \
+      BPF_STMT(BPF_LD + BPF_W + BPF_ABS,                                       \
+               offsetof(struct seccomp_data, args[(_arg_nr)])),                \
+      BPF_JUMP(BPF_JMP + BPF_JEQ + BPF_K, (_arg_val), 0, 1),                   \
+      BPF_STMT(BPF_RET + BPF_K,                                                \
+               SECCOMP_RET_ALLOW), /* reload syscall number; all               \
+                                      rules expect it in                       \
+                                      accumulator */                           \
+      BPF_STMT(BPF_LD + BPF_W + BPF_ABS, offsetof(struct seccomp_data, nr))
 
 /*
  * http://outflux.net/teach-seccomp/
@@ -62,228 +63,218 @@
 #define arch_nr (offsetof(struct seccomp_data, arch))
 
 #if defined(__i386__)
-# define SECCOMP_AUDIT_ARCH    AUDIT_ARCH_I386
+#define SECCOMP_AUDIT_ARCH AUDIT_ARCH_I386
 #elif defined(__x86_64__)
-# define SECCOMP_AUDIT_ARCH    AUDIT_ARCH_X86_64
+#define SECCOMP_AUDIT_ARCH AUDIT_ARCH_X86_64
 #elif defined(__arm__)
-# define SECCOMP_AUDIT_ARCH    AUDIT_ARCH_ARM
+#define SECCOMP_AUDIT_ARCH AUDIT_ARCH_ARM
 #elif defined(__aarch64__)
-# define SECCOMP_AUDIT_ARCH    AUDIT_ARCH_AARCH64
+#define SECCOMP_AUDIT_ARCH AUDIT_ARCH_AARCH64
 #else
-# warning "seccomp: unsupported platform"
-# define SECCOMP_AUDIT_ARCH    0
+#warning "seccomp: unsupported platform"
+#define SECCOMP_AUDIT_ARCH 0
 #endif
 
-    int
-sandbox_init()
-{
-    struct sock_filter filter[] = {
-        /* Ensure the syscall arch convention is as expected. */
-        BPF_STMT(BPF_LD+BPF_W+BPF_ABS,
-            offsetof(struct seccomp_data, arch)),
-        BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, SECCOMP_AUDIT_ARCH, 1, 0),
-        BPF_STMT(BPF_RET+BPF_K, SECCOMP_FILTER_FAIL),
-        /* Load the syscall number for checking. */
-        BPF_STMT(BPF_LD+BPF_W+BPF_ABS,
-            offsetof(struct seccomp_data, nr)),
+int sandbox_init() {
+  struct sock_filter filter[] = {
+      /* Ensure the syscall arch convention is as expected. */
+      BPF_STMT(BPF_LD + BPF_W + BPF_ABS, offsetof(struct seccomp_data, arch)),
+      BPF_JUMP(BPF_JMP + BPF_JEQ + BPF_K, SECCOMP_AUDIT_ARCH, 1, 0),
+      BPF_STMT(BPF_RET + BPF_K, SECCOMP_FILTER_FAIL),
+      /* Load the syscall number for checking. */
+      BPF_STMT(BPF_LD + BPF_W + BPF_ABS, offsetof(struct seccomp_data, nr)),
 
-        /* Syscalls to non-fatally deny */
+/* Syscalls to non-fatally deny */
 #ifdef __NR_ioctl
-    SC_DENY(ioctl, ENOTTY),
+      SC_DENY(ioctl, ENOTTY),
 #endif
 
-        /* Syscalls to allow */
+/* Syscalls to allow */
 #ifdef __NR_prctl
-    SC_ALLOW(prctl),
+      SC_ALLOW(prctl),
 #endif
 #ifdef __NR_brk
-    SC_ALLOW(brk),
+      SC_ALLOW(brk),
 #endif
 #ifdef __NR_clock_gettime
-    SC_ALLOW(clock_gettime),
+      SC_ALLOW(clock_gettime),
 #endif
 #ifdef __NR_close
-    SC_ALLOW(close),
+      SC_ALLOW(close),
 #endif
 #ifdef __NR_exit_group
-    SC_ALLOW(exit_group),
+      SC_ALLOW(exit_group),
 #endif
 #ifdef __NR_fcntl
-    SC_ALLOW(fcntl),
+      SC_ALLOW(fcntl),
 #endif
 #ifdef __NR_fcntl64
-    SC_ALLOW(fcntl64),
+      SC_ALLOW(fcntl64),
 #endif
 #ifdef __NR_fstat
-    SC_ALLOW(fstat),
+      SC_ALLOW(fstat),
 #endif
 #ifdef __NR_fstat64
-    SC_ALLOW(fstat64),
+      SC_ALLOW(fstat64),
 #endif
 #ifdef __NR_ftruncate
-    SC_ALLOW(ftruncate),
+      SC_ALLOW(ftruncate),
 #endif
 #ifdef __NR_getuid
-    SC_ALLOW(getuid),
+      SC_ALLOW(getuid),
 #endif
 #ifdef __NR_getuid32
-    SC_ALLOW(getuid32),
+      SC_ALLOW(getuid32),
 #endif
 #ifdef __NR_lseek
-    SC_ALLOW(lseek),
+      SC_ALLOW(lseek),
 #endif
 #ifdef __NR_mmap
-    SC_ALLOW(mmap),
+      SC_ALLOW(mmap),
 #endif
 #ifdef __NR_mmap2
-    SC_ALLOW(mmap2),
+      SC_ALLOW(mmap2),
 #endif
 #ifdef __NR_mprotect
-    SC_ALLOW(mprotect),
+      SC_ALLOW(mprotect),
 #endif
 #ifdef __NR_msync
-    SC_ALLOW(msync),
+      SC_ALLOW(msync),
 #endif
 #ifdef __NR_munmap
-    SC_ALLOW(munmap),
+      SC_ALLOW(munmap),
 #endif
 #ifdef __NR_read
-    SC_ALLOW(read),
+      SC_ALLOW(read),
 #endif
 #ifdef __NR_readv
-    SC_ALLOW(readv),
+      SC_ALLOW(readv),
 #endif
 #ifdef __NR_shm_unlink
-    SC_ALLOW(shm_unlink),
+      SC_ALLOW(shm_unlink),
 #endif
 #ifdef __NR_sigaction
-    SC_ALLOW(sigaction),
+      SC_ALLOW(sigaction),
 #endif
 #ifdef __NR_sigprocmask
-    SC_ALLOW(sigprocmask),
+      SC_ALLOW(sigprocmask),
 #endif
 #ifdef __NR_unlink
-    SC_ALLOW(unlink),
+      SC_ALLOW(unlink),
 #endif
 #ifdef __NR_uname
-    SC_ALLOW(uname),
+      SC_ALLOW(uname),
 #endif
 #ifdef __NR_write
-    SC_ALLOW(write),
+      SC_ALLOW(write),
 #endif
 #ifdef __NR_writev
-    SC_ALLOW(writev),
+      SC_ALLOW(writev),
 #endif
 #ifdef __NR_open
-    SC_ALLOW(open),
+      SC_ALLOW(open),
 #endif
 #ifdef __NR_openat
-    SC_ALLOW(openat),
+      SC_ALLOW(openat),
 #endif
 #ifdef __NR_fstatat
-    SC_ALLOW(fstatat),
+      SC_ALLOW(fstatat),
 #endif
 #ifdef __NR_fstatat64
-    SC_ALLOW(fstatat64),
+      SC_ALLOW(fstatat64),
 #endif
 #ifdef __NR_restart_syscall
-        SC_ALLOW(restart_syscall),
+      SC_ALLOW(restart_syscall),
 #endif
 #ifdef __NR_statfs
-        SC_ALLOW(statfs),
+      SC_ALLOW(statfs),
 #endif
 #ifdef __NR_futex
-        SC_ALLOW(futex),
+      SC_ALLOW(futex),
 #endif
 
-        /* Default deny */
-        BPF_STMT(BPF_RET+BPF_K, SECCOMP_FILTER_FAIL)
-    };
+      /* Default deny */
+      BPF_STMT(BPF_RET + BPF_K, SECCOMP_FILTER_FAIL)};
 
-    struct sock_fprog prog = {
-        .len = (unsigned short)(sizeof(filter)/sizeof(filter[0])),
-        .filter = filter,
-    };
+  struct sock_fprog prog = {
+      .len = (unsigned short)(sizeof(filter) / sizeof(filter[0])),
+      .filter = filter,
+  };
 
-    if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) < 0)
-        return -1;
+  if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) < 0)
+    return -1;
 
-    return prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog);
+  return prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog);
 }
 
-    int
-sandbox_mmap()
-{
-    struct sock_filter filter[] = {
-        /* Ensure the syscall arch convention is as expected. */
-        BPF_STMT(BPF_LD+BPF_W+BPF_ABS,
-            offsetof(struct seccomp_data, arch)),
-        BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, SECCOMP_AUDIT_ARCH, 1, 0),
-        BPF_STMT(BPF_RET+BPF_K, SECCOMP_FILTER_FAIL),
-        /* Load the syscall number for checking. */
-        BPF_STMT(BPF_LD+BPF_W+BPF_ABS,
-            offsetof(struct seccomp_data, nr)),
+int sandbox_mmap() {
+  struct sock_filter filter[] = {
+      /* Ensure the syscall arch convention is as expected. */
+      BPF_STMT(BPF_LD + BPF_W + BPF_ABS, offsetof(struct seccomp_data, arch)),
+      BPF_JUMP(BPF_JMP + BPF_JEQ + BPF_K, SECCOMP_AUDIT_ARCH, 1, 0),
+      BPF_STMT(BPF_RET + BPF_K, SECCOMP_FILTER_FAIL),
+      /* Load the syscall number for checking. */
+      BPF_STMT(BPF_LD + BPF_W + BPF_ABS, offsetof(struct seccomp_data, nr)),
 
-        /* Syscalls to non-fatally deny */
+/* Syscalls to non-fatally deny */
 #ifdef __NR_ioctl
-    SC_DENY(ioctl, ENOTTY),
+      SC_DENY(ioctl, ENOTTY),
 #endif
 
-        /* Syscalls to allow */
+/* Syscalls to allow */
 
-        /* Used to test if input is file or stdin */
+/* Used to test if input is file or stdin */
 #ifdef __NR_exit_group
-    SC_ALLOW(exit_group),
+      SC_ALLOW(exit_group),
 #endif
 #ifdef __NR_fstat
-    SC_ALLOW(fstat),
+      SC_ALLOW(fstat),
 #endif
 #ifdef __NR_fstat64
-    SC_ALLOW(fstat64),
+      SC_ALLOW(fstat64),
 #endif
 #ifdef __NR_mmap
-    SC_ALLOW(mmap),
+      SC_ALLOW(mmap),
 #endif
 #ifdef __NR_mmap2
-    SC_ALLOW(mmap2),
+      SC_ALLOW(mmap2),
 #endif
 #ifdef __NR_mprotect
-    SC_ALLOW(mprotect),
+      SC_ALLOW(mprotect),
 #endif
 #ifdef __NR_msync
-    SC_ALLOW(msync),
+      SC_ALLOW(msync),
 #endif
 #ifdef __NR_munmap
-    SC_ALLOW(munmap),
+      SC_ALLOW(munmap),
 #endif
 #ifdef __NR_read
-    SC_ALLOW(read),
+      SC_ALLOW(read),
 #endif
 #ifdef __NR_readv
-    SC_ALLOW(readv),
+      SC_ALLOW(readv),
 #endif
 #ifdef __NR_sigaction
-    SC_ALLOW(sigaction),
+      SC_ALLOW(sigaction),
 #endif
 #ifdef __NR_write
-    SC_ALLOW(write),
+      SC_ALLOW(write),
 #endif
 #ifdef __NR_writev
-    SC_ALLOW(writev),
+      SC_ALLOW(writev),
 #endif
 #ifdef __NR_restart_syscall
-        SC_ALLOW(restart_syscall),
+      SC_ALLOW(restart_syscall),
 #endif
 
-        /* Default deny */
-        BPF_STMT(BPF_RET+BPF_K, SECCOMP_FILTER_FAIL)
-    };
+      /* Default deny */
+      BPF_STMT(BPF_RET + BPF_K, SECCOMP_FILTER_FAIL)};
 
-    struct sock_fprog prog = {
-        .len = (unsigned short)(sizeof(filter)/sizeof(filter[0])),
-        .filter = filter,
-    };
+  struct sock_fprog prog = {
+      .len = (unsigned short)(sizeof(filter) / sizeof(filter[0])),
+      .filter = filter,
+  };
 
-    return prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog);
+  return prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog);
 }
 #endif

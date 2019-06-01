@@ -14,15 +14,7 @@
  */
 #include "runlimit.h"
 #ifdef RUNLIMIT_SANDBOX_null
-  int
-sandbox_init()
-{
-  return 0;
-}
+int sandbox_init() { return 0; }
 
-  int
-sandbox_mmap()
-{
-  return 0;
-}
+int sandbox_mmap() { return 0; }
 #endif

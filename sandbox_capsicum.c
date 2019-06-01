@@ -14,55 +14,51 @@
  */
 #include "runlimit.h"
 #ifdef RUNLIMIT_SANDBOX_capsicum
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/param.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 #include <sys/capability.h>
+#include <sys/param.h>
+#include <sys/resource.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-  int
-sandbox_init()
-{
-    struct rlimit rl = {0};
+int sandbox_init() {
+  struct rlimit rl = {0};
 
-    return setrlimit(RLIMIT_NPROC, &rl);
+  return setrlimit(RLIMIT_NPROC, &rl);
 }
 
-  int
-sandbox_mmap()
-{
-    struct rlimit rl = {0};
-    cap_rights_t policy_read;
-    cap_rights_t policy_write;
-    cap_rights_t policy_mmap;
+int sandbox_mmap() {
+  struct rlimit rl = {0};
+  cap_rights_t policy_read;
+  cap_rights_t policy_write;
+  cap_rights_t policy_mmap;
 
-    int fd = -1;
+  int fd = -1;
 
-    (void)cap_rights_init(&policy_read, CAP_READ);
-    (void)cap_rights_init(&policy_write, CAP_WRITE);
-    (void)cap_rights_init(&policy_mmap, CAP_MMAP_RW);
+  (void)cap_rights_init(&policy_read, CAP_READ);
+  (void)cap_rights_init(&policy_write, CAP_WRITE);
+  (void)cap_rights_init(&policy_mmap, CAP_MMAP_RW);
 
-    if (cap_rights_limit(STDIN_FILENO, &policy_read) < 0)
-        return -1;
+  if (cap_rights_limit(STDIN_FILENO, &policy_read) < 0)
+    return -1;
 
-    if (cap_rights_limit(STDOUT_FILENO, &policy_write) < 0)
-        return -1;
+  if (cap_rights_limit(STDOUT_FILENO, &policy_write) < 0)
+    return -1;
 
-    if (cap_rights_limit(STDERR_FILENO, &policy_write) < 0)
-        return -1;
+  if (cap_rights_limit(STDERR_FILENO, &policy_write) < 0)
+    return -1;
 
-    if (getrlimit(RLIMIT_NOFILE, &rl) < 0)
-        return -1;
+  if (getrlimit(RLIMIT_NOFILE, &rl) < 0)
+    return -1;
 
-    for (fd = STDERR_FILENO+1; fd < rl.rlim_cur; fd++) {
-        if (fcntl(fd, F_GETFD, 0) < 0)
-            continue;
+  for (fd = STDERR_FILENO + 1; fd < rl.rlim_cur; fd++) {
+    if (fcntl(fd, F_GETFD, 0) < 0)
+      continue;
 
-        if (cap_rights_limit(fd, &policy_mmap) < 0)
-            return -1;
-    }
+    if (cap_rights_limit(fd, &policy_mmap) < 0)
+      return -1;
+  }
 
-    return cap_enter();
+  return cap_enter();
 }
 #endif

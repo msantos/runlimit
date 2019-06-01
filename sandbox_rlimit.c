@@ -14,20 +14,16 @@
  */
 #include "runlimit.h"
 #ifdef RUNLIMIT_SANDBOX_rlimit
-#include <time.h>
 #include <sys/resource.h>
+#include <time.h>
 
-  int
-sandbox_init()
-{
+int sandbox_init() {
   struct rlimit rl_zero = {0};
 
   return setrlimit(RLIMIT_NPROC, &rl_zero);
 }
 
-  int
-sandbox_mmap()
-{
+int sandbox_mmap() {
   struct rlimit rl_zero = {0};
 
   return setrlimit(RLIMIT_NOFILE, &rl_zero);
