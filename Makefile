@@ -2,12 +2,7 @@
 
 PROG=   runlimit
 SRCS=   runlimit.c \
-        strtonum.c \
-        sandbox_capsicum.c \
-        sandbox_null.c \
-        sandbox_pledge.c \
-        sandbox_rlimit.c \
-        sandbox_seccomp.c
+        strtonum.c
 
 UNAME_SYS := $(shell uname -s)
 ifeq ($(UNAME_SYS), Linux)
@@ -16,7 +11,6 @@ ifeq ($(UNAME_SYS), Linux)
               -pie -fPIE \
               -fno-strict-aliasing
 		LDFLAGS ?= -lrt -Wl,-z,relro,-z,now -Wl,-z,noexecstack
-	  RUNLIMIT_SANDBOX ?= seccomp
 else ifeq ($(UNAME_SYS), OpenBSD)
     CFLAGS ?= -DHAVE_STRTONUM \
               -D_FORTIFY_SOURCE=2 -O2 -fstack-protector-strong \
@@ -24,7 +18,6 @@ else ifeq ($(UNAME_SYS), OpenBSD)
               -pie -fPIE \
               -fno-strict-aliasing
 	  LDFLAGS ?= -Wl,-z,relro,-z,now -Wl,-z,noexecstack
-	  RUNLIMIT_SANDBOX ?= pledge
 else ifeq ($(UNAME_SYS), FreeBSD)
     CFLAGS ?= -DHAVE_STRTONUM \
               -D_FORTIFY_SOURCE=2 -O2 -fstack-protector-strong \
@@ -32,7 +25,6 @@ else ifeq ($(UNAME_SYS), FreeBSD)
               -pie -fPIE \
               -fno-strict-aliasing
 	  LDFLAGS ?= -Wl,-z,relro,-z,now -Wl,-z,noexecstack
-	  RUNLIMIT_SANDBOX ?= capsicum
 else ifeq ($(UNAME_SYS), Darwin)
     CFLAGS ?= -D_FORTIFY_SOURCE=2 -O2 -fstack-protector-strong \
               -Wformat -Werror=format-security \
@@ -42,12 +34,9 @@ endif
 
 RM ?= rm
 
-RUNLIMIT_SANDBOX ?= rlimit
 RUNLIMIT_CFLAGS ?= -g -Wall -fwrapv -pedantic
 
-CFLAGS += $(RUNLIMIT_CFLAGS) \
-          -DRUNLIMIT_SANDBOX=\"$(RUNLIMIT_SANDBOX)\" \
-          -DRUNLIMIT_SANDBOX_$(RUNLIMIT_SANDBOX)
+CFLAGS += $(RUNLIMIT_CFLAGS)
 
 LDFLAGS += $(RUNLIMIT_LDFLAGS)
 

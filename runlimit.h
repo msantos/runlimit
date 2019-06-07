@@ -13,10 +13,7 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-int sandbox_init();
-int sandbox_mmap();
-
 #ifndef HAVE_STRTONUM
 long long strtonum(const char *numstr, long long minval, long long maxval,
-                   const char **errstrp);
+            const char **errstrp);
 #endif
