@@ -54,7 +54,7 @@ EOF
 }
 
 @test "runlimit: print remaining seconds" {
-  run runlimit -P -f runlimit-test -- true 2>&1
+  run runlimit -n -P -f runlimit-test -- true 2>&1
 cat << EOF
 $output
 EOF

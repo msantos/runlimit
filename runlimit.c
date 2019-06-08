@@ -166,13 +166,15 @@ int main(int argc, char *argv[]) {
   if (fd < 0)
     err(EXIT_ERRNO, "runlimit_open: %s", name);
 
-  if (flock(fd, lock_flag) < 0) {
-    switch (errno) {
-    case EWOULDBLOCK:
-      VERBOSE(1, "error: flock: %s\n", strerror(errno));
-      exit(EXIT_ERRNO);
-    default:
-      err(EXIT_ERRNO, "flock");
+  if (!(opt & OPT_DRYRUN)) {
+    if (flock(fd, lock_flag) < 0) {
+      switch (errno) {
+      case EWOULDBLOCK:
+        VERBOSE(1, "error: flock: %s\n", strerror(errno));
+        exit(EXIT_ERRNO);
+      default:
+        err(EXIT_ERRNO, "flock");
+      }
     }
   }
 
@@ -199,7 +201,6 @@ int main(int argc, char *argv[]) {
 
   if (opt & OPT_PRINT) {
     (void)printf("%d\n", remaining);
-    exit(0);
   }
 
   switch (remaining) {
@@ -234,6 +235,9 @@ int main(int argc, char *argv[]) {
 
     break;
   }
+
+  if (opt & OPT_DRYRUN)
+    exit(0);
 
   ap->intensity++;
 
