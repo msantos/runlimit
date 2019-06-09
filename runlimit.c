@@ -203,17 +203,14 @@ int main(int argc, char *argv[]) {
     (void)printf("%d\n", remaining);
   }
 
-  switch (remaining) {
-  case 0:
+  if (remaining == 0) {
+    if (opt & OPT_DRYRUN)
+      exit(0);
+
     ap->intensity = 0;
     ap->now.tv_sec = now.tv_sec;
     ap->now.tv_nsec = 0;
-    break;
-
-  default:
-    if (ap->intensity < intensity)
-      break;
-
+  } else if (ap->intensity >= intensity) {
     VERBOSE(1, "error: threshold: %u/%u (%ds)\n", ap->intensity, intensity,
             period);
 
@@ -229,11 +226,12 @@ int main(int argc, char *argv[]) {
     while (sleepfor > 0)
       sleepfor = sleep(sleepfor);
 
+    if (opt & OPT_DRYRUN)
+      exit(0);
+
     ap->intensity = 0;
     ap->now.tv_sec = now.tv_sec + remaining;
     ap->now.tv_nsec = 0;
-
-    break;
   }
 
   if (opt & OPT_DRYRUN)
