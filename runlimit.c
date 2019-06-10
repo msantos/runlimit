@@ -271,10 +271,9 @@ static int runlimit_open(const char *name) {
   }
 
   if (buf.st_size < sizeof(runlimit_t)) {
-    oerrno = errno;
     (void)close(fd);
     (void)unlink(name);
-    errno = oerrno;
+    errno = EFAULT;
     return -1;
   }
 
