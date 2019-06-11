@@ -252,7 +252,7 @@ static int runlimit_open(const char *name) {
   struct stat buf = {0};
   int oerrno;
 
-  fd = open(name, O_RDWR, 0);
+  fd = open(name, O_RDWR | O_CLOEXEC, 0);
 
   if (fd < 0) {
     switch (errno) {
@@ -283,7 +283,7 @@ static int runlimit_open(const char *name) {
 static int runlimit_create(const char *name) {
   int fd;
 
-  fd = open(name, O_RDWR | O_CREAT | O_EXCL, 0600);
+  fd = open(name, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
 
   if (fd < 0)
     return -1;
