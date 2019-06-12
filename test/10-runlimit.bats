@@ -53,6 +53,15 @@ EOF
   [ "$status" -gt 127 ]
 }
 
+@test "runlimit: invalid state" {
+  > runlimit-test
+  run runlimit -vv -i 2 -p 10 -f runlimit-test -- true
+cat << EOF
+$output
+EOF
+  [ "$status" -eq 141 ]
+}
+
 @test "runlimit: print remaining seconds" {
   run runlimit -n -P -f runlimit-test -- true 2>&1
 cat << EOF
