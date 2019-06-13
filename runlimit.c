@@ -103,6 +103,9 @@ int main(int argc, char *argv[]) {
   const char *errstr = NULL;
   int lock_flag = LOCK_EX | LOCK_NB;
 
+  if (setvbuf(stdout, NULL, _IOLBF, 0) < 0)
+    err(EXIT_FAILURE, "setvbuf");
+
   if (clock_gettime(RUNLIMIT_CLOCK_MONOTONIC, &now) < 0)
     err(EXIT_ERRNO, "clock_gettime(CLOCK_MONOTONIC)");
 
