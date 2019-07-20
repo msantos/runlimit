@@ -31,8 +31,6 @@
 #include <limits.h>
 #include <sys/param.h>
 
-#include <sys/file.h>
-
 #include <signal.h>
 #include <sys/types.h>
 
@@ -101,7 +99,6 @@ int main(int argc, char *argv[]) {
   int verbose = 0;
   int ch;
   const char *errstr = NULL;
-  int lock_flag = LOCK_EX | LOCK_NB;
 
   if (setvbuf(stdout, NULL, _IOLBF, 0) < 0)
     err(EXIT_FAILURE, "setvbuf");
@@ -149,7 +146,6 @@ int main(int argc, char *argv[]) {
 
     case 'w':
       opt |= OPT_WAIT;
-      lock_flag &= ~LOCK_NB;
       break;
 
     case 'h':
@@ -168,18 +164,6 @@ int main(int argc, char *argv[]) {
 
   if (fd < 0)
     err(EXIT_ERRNO, "runlimit_open: %s", name);
-
-  if (!(opt & OPT_DRYRUN)) {
-    if (flock(fd, lock_flag) < 0) {
-      switch (errno) {
-      case EWOULDBLOCK:
-        VERBOSE(1, "error: flock: %s\n", strerror(errno));
-        exit(EXIT_ERRNO);
-      default:
-        err(EXIT_ERRNO, "flock");
-      }
-    }
-  }
 
   ap =
       mmap(NULL, sizeof(runlimit_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
