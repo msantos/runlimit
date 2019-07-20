@@ -14,14 +14,14 @@ teardown() {
 cat << EOF
 $output
 EOF
-  [ "${lines[5]}" = "count=4" ]
+  [ "${lines[4]}" = "count=4" ]
 
   rm -f runlimit-test
   run runlimit -vv -i 100 -p 120 -f runlimit-test -- true
 cat << EOF
 $output
 EOF
-  [ "${lines[5]}" = "count=0" ]
+  [ "${lines[4]}" = "count=0" ]
 }
 
 @test "runlimit: under threshold" {

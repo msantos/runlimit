@@ -34,6 +34,8 @@
 #include <signal.h>
 #include <sys/types.h>
 
+#include <sys/file.h>
+
 #include "runlimit.h"
 
 #define RUNLIMIT_VERSION "0.1.0"
@@ -82,6 +84,7 @@ static const struct option long_options[] = {
 
 static int runlimit_open(const char *name);
 static int runlimit_create(const char *name);
+static int runlimit_check(runlimit_t *ap, int period, struct timespec *now);
 static void usage();
 
 int main(int argc, char *argv[]) {
@@ -90,21 +93,16 @@ int main(int argc, char *argv[]) {
   const char *name = "supervise/runlimit";
   u_int32_t intensity = 1;
   int period = 1;
-  int sig = SIGTERM;
-  struct timespec now;
-  int diff;
-  int remaining;
-  unsigned int sleepfor;
-  int opt = 0;
+  int remaining = 1;
   int verbose = 0;
+  struct timespec now;
+  int sig = SIGTERM;
+  int opt = 0;
   int ch;
   const char *errstr = NULL;
 
   if (setvbuf(stdout, NULL, _IOLBF, 0) < 0)
     err(EXIT_FAILURE, "setvbuf");
-
-  if (clock_gettime(RUNLIMIT_CLOCK_MONOTONIC, &now) < 0)
-    err(EXIT_ERRNO, "clock_gettime(CLOCK_MONOTONIC)");
 
   while ((ch = getopt_long(argc, argv, "f:hi:k:nPp:vw", long_options, NULL)) !=
          -1) {
@@ -171,20 +169,21 @@ int main(int argc, char *argv[]) {
   if (ap == MAP_FAILED)
     err(EXIT_ERRNO, "mmap");
 
-  diff = now.tv_sec - ap->now.tv_sec;
-  if (diff < 0)
-    diff = 0;
+  if (flock(fd, LOCK_EX | LOCK_NB) < 0)
+    err(EXIT_ERRNO, "flock");
+
+  if (clock_gettime(RUNLIMIT_CLOCK_MONOTONIC, &now) < 0)
+    err(EXIT_ERRNO, "clock_gettime(CLOCK_MONOTONIC)");
+
+  remaining = runlimit_check(ap, period, &now);
 
   VERBOSE(2, "now=%llu\n"
              "last=%llu\n"
-             "diff=%u\n"
              "intensity=%u\n"
              "period=%d\n"
              "count=%u\n",
-          (long long)now.tv_sec, (long long)ap->now.tv_sec, diff, intensity,
+          (long long)now.tv_sec, (long long)ap->now.tv_sec, intensity,
           period, ap->intensity);
-
-  remaining = period <= diff ? 0 : period - diff;
 
   if (opt & OPT_PRINT) {
     (void)printf("%d\n", remaining);
@@ -206,19 +205,7 @@ int main(int argc, char *argv[]) {
         err(EXIT_ERRNO, "kill");
     }
 
-    if (!(opt & OPT_WAIT))
-      exit(111);
-
-    sleepfor = remaining;
-    while (sleepfor > 0)
-      sleepfor = sleep(sleepfor);
-
-    if (opt & OPT_DRYRUN)
-      exit(0);
-
-    ap->intensity = 0;
-    ap->now.tv_sec = now.tv_sec + remaining;
-    ap->now.tv_nsec = 0;
+    exit(111);
   }
 
   if (opt & OPT_DRYRUN)
@@ -285,6 +272,18 @@ static int runlimit_create(const char *name) {
 
   return fd;
 }
+
+static int runlimit_check(runlimit_t *ap, int period, struct timespec *now) {
+  int diff;
+
+  diff = now->tv_sec - ap->now.tv_sec;
+
+  if (diff < 0)
+    diff = 0;
+
+  return period <= diff ? 0 : period - diff;
+}
+
 
 static void usage() {
   errx(EXIT_FAILURE, "[OPTION] <PATH>\n"
