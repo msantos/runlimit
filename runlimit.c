@@ -38,7 +38,7 @@
 
 #include "runlimit.h"
 
-#define RUNLIMIT_VERSION "0.1.0"
+#define RUNLIMIT_VERSION "0.2.0"
 
 #ifdef CLOCK_MONOTONIC_COARSE
 #define RUNLIMIT_CLOCK_MONOTONIC CLOCK_MONOTONIC_COARSE
@@ -169,55 +169,71 @@ int main(int argc, char *argv[]) {
   if (ap == MAP_FAILED)
     err(EXIT_ERRNO, "mmap");
 
-  if (flock(fd, LOCK_EX | LOCK_NB) < 0)
-    err(EXIT_ERRNO, "flock");
+  for (;;) {
+    if (flock(fd, LOCK_EX | LOCK_NB) < 0) {
+      if (opt & OPT_WAIT) {
+        (void)sleep(1);
+        continue;
+      }
 
-  if (clock_gettime(RUNLIMIT_CLOCK_MONOTONIC, &now) < 0)
-    err(EXIT_ERRNO, "clock_gettime(CLOCK_MONOTONIC)");
+      goto RUNLIMIT_EXIT;
+    }
 
-  remaining = runlimit_check(ap, period, &now);
+    if (clock_gettime(RUNLIMIT_CLOCK_MONOTONIC, &now) < 0)
+      err(EXIT_ERRNO, "clock_gettime(CLOCK_MONOTONIC)");
 
-  VERBOSE(2, "now=%llu\n"
-             "last=%llu\n"
-             "intensity=%u\n"
-             "period=%d\n"
-             "count=%u\n",
-          (long long)now.tv_sec, (long long)ap->now.tv_sec, intensity,
-          period, ap->intensity);
+    remaining = runlimit_check(ap, period, &now);
 
-  if (opt & OPT_PRINT) {
-    (void)printf("%d\n", remaining);
-  }
+    VERBOSE(2, "now=%llu\n"
+               "last=%llu\n"
+               "intensity=%u\n"
+               "period=%d\n"
+               "count=%u\n"
+               "threshold=%s\n",
+            (long long)now.tv_sec, (long long)ap->now.tv_sec, intensity, period,
+            ap->intensity, ap->intensity >= intensity ? "true" : "false");
 
-  if (remaining == 0) {
+    if (opt & OPT_PRINT)
+      (void)printf("%d\n", remaining);
+
     if (opt & OPT_DRYRUN)
       exit(0);
 
-    ap->intensity = 0;
-    ap->now.tv_sec = now.tv_sec;
-    ap->now.tv_nsec = 0;
-  } else if (ap->intensity >= intensity) {
-    VERBOSE(1, "error: threshold: %u/%u (%ds)\n", ap->intensity, intensity,
-            period);
+    if (remaining == 0) {
+      ap->intensity = 0;
+      ap->now.tv_sec = now.tv_sec;
+      ap->now.tv_nsec = 0;
+    } else if (ap->intensity >= intensity) {
+      VERBOSE(1, "error: threshold: %u/%u (%ds)\n", ap->intensity, intensity,
+              period);
 
-    if (opt & OPT_KILL) {
-      if (kill(0, sig) < 0)
-        err(EXIT_ERRNO, "kill");
+      if (opt & OPT_KILL) {
+        if (kill(0, sig) < 0)
+          err(EXIT_ERRNO, "kill");
+      }
+
+      if (opt & OPT_WAIT) {
+        if (flock(fd, LOCK_UN) < 0) {
+          err(EXIT_ERRNO, "flock(LOCK_UN)");
+        }
+        (void)sleep(1);
+        continue;
+      }
+
+      exit(111);
     }
 
-    exit(111);
+    ap->intensity++;
+
+    if (msync(ap, sizeof(runlimit_t), MS_SYNC | MS_INVALIDATE) < 0)
+      err(EXIT_ERRNO, "msync");
+
+    break;
   }
-
-  if (opt & OPT_DRYRUN)
-    exit(0);
-
-  ap->intensity++;
-
-  if (msync(ap, sizeof(runlimit_t), MS_SYNC | MS_INVALIDATE) < 0)
-    err(EXIT_ERRNO, "msync");
 
   (void)execvp(argv[0], argv);
 
+RUNLIMIT_EXIT:
   exit(EXIT_ERRNO);
 }
 
@@ -283,7 +299,6 @@ static int runlimit_check(runlimit_t *ap, int period, struct timespec *now) {
 
   return period <= diff ? 0 : period - diff;
 }
-
 
 static void usage() {
   errx(EXIT_FAILURE, "[OPTION] <PATH>\n"
