@@ -171,12 +171,10 @@ int main(int argc, char *argv[]) {
 
   for (;;) {
     if (flock(fd, LOCK_EX | LOCK_NB) < 0) {
-      if (opt & OPT_WAIT) {
-        (void)sleep(1);
-        continue;
-      }
+      if (opt & OPT_WAIT)
+        goto RUNLIMIT_WAIT;
 
-      goto RUNLIMIT_EXIT;
+      exit(EXIT_ERRNO);
     }
 
     if (clock_gettime(RUNLIMIT_CLOCK_MONOTONIC, &now) < 0)
@@ -184,14 +182,16 @@ int main(int argc, char *argv[]) {
 
     remaining = runlimit_check(ap, period, &now);
 
-    VERBOSE(2, "now=%llu\n"
-               "last=%llu\n"
-               "intensity=%u\n"
-               "period=%d\n"
-               "count=%u\n"
-               "threshold=%s\n",
-            (long long)now.tv_sec, (long long)ap->now.tv_sec, intensity, period,
-            ap->intensity, ap->intensity >= intensity ? "true" : "false");
+    VERBOSE(
+        2, "now=%llu\n"
+           "last=%llu\n"
+           "intensity=%u\n"
+           "period=%d\n"
+           "count=%u\n"
+           "threshold=%s\n",
+        (long long)now.tv_sec, (long long)ap->now.tv_sec, intensity, period,
+        ap->intensity,
+        (remaining != 0 && ap->intensity >= intensity ? "reached" : "below"));
 
     if (opt & OPT_PRINT)
       (void)printf("%d\n", remaining);
@@ -216,8 +216,8 @@ int main(int argc, char *argv[]) {
         if (flock(fd, LOCK_UN) < 0) {
           err(EXIT_ERRNO, "flock(LOCK_UN)");
         }
-        (void)sleep(1);
-        continue;
+
+        goto RUNLIMIT_WAIT;
       }
 
       exit(111);
@@ -229,11 +229,13 @@ int main(int argc, char *argv[]) {
       err(EXIT_ERRNO, "msync");
 
     break;
+
+  RUNLIMIT_WAIT:
+    (void)sleep(1);
   }
 
   (void)execvp(argv[0], argv);
 
-RUNLIMIT_EXIT:
   exit(EXIT_ERRNO);
 }
 
