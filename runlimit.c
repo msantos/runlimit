@@ -85,6 +85,7 @@ static const struct option long_options[] = {
 static int runlimit_open(const char *name);
 static int runlimit_create(const char *name);
 static int runlimit_check(runlimit_t *ap, int period, struct timespec *now);
+static int runlimit_exists(int fd);
 static void usage();
 
 int main(int argc, char *argv[]) {
@@ -232,6 +233,9 @@ int main(int argc, char *argv[]) {
 
   RUNLIMIT_WAIT:
     (void)sleep(1);
+
+    if (runlimit_exists(fd) < 0)
+      err(EXIT_ERRNO, "%s", name);
   }
 
   (void)execvp(argv[0], argv);
@@ -300,6 +304,20 @@ static int runlimit_check(runlimit_t *ap, int period, struct timespec *now) {
     diff = 0;
 
   return period <= diff ? 0 : period - diff;
+}
+
+static int runlimit_exists(int fd) {
+  struct stat buf;
+
+  if (fstat(fd, &buf) < 0)
+    return -1;
+
+  if (buf.st_nlink < 1) {
+    errno = ENOENT;
+    return -1;
+  }
+
+  return 0;
 }
 
 static void usage() {
