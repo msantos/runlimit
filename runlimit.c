@@ -267,8 +267,9 @@ static int runlimit_open(const char *name) {
   }
 
   if (buf.st_size < sizeof(runlimit_t)) {
+    if (flock(fd, LOCK_EX | LOCK_NB) == 0)
+      (void)unlink(name);
     (void)close(fd);
-    (void)unlink(name);
     errno = EFAULT;
     return -1;
   }
