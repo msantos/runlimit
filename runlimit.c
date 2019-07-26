@@ -279,21 +279,30 @@ static int runlimit_open(const char *name) {
 
 static int runlimit_create(const char *name) {
   int fd;
+  int oerrno;
 
   fd = open(name, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
 
   if (fd < 0)
     return -1;
 
-  if (ftruncate(fd, sizeof(runlimit_t)) < 0) {
-    int oerrno = errno;
-    (void)close(fd);
-    (void)unlink(name);
-    errno = oerrno;
-    return -1;
-  }
+  if (flock(fd, LOCK_EX | LOCK_NB) < 0)
+    goto RUNLIMIT_ERR;
+
+  if (ftruncate(fd, sizeof(runlimit_t)) < 0)
+    goto RUNLIMIT_ERR;
+
+  if (flock(fd, LOCK_UN) < 0)
+    goto RUNLIMIT_ERR;
 
   return fd;
+
+RUNLIMIT_ERR:
+  oerrno = errno;
+  (void)close(fd);
+  (void)unlink(name);
+  errno = oerrno;
+  return -1;
 }
 
 static int runlimit_check(runlimit_t *ap, int period, struct timespec *now) {
