@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Michael Santos <michael.santos@gmail.com>
+ * Copyright (c) 2019-2021, Michael Santos <michael.santos@gmail.com>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,7 +12,7 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-*/
+ */
 #include <err.h>
 #include <getopt.h>
 #include <stdio.h>
@@ -73,7 +73,7 @@ static const struct option long_options[] = {
     {"intensity", required_argument, NULL, 'i'},
     {"period", required_argument, NULL, 'p'},
     {"kill", required_argument, NULL, 'k'},
-    {"file", no_argument, NULL, 'f'},
+    {"file", required_argument, NULL, 'f'},
     {"dryrun", no_argument, NULL, 'n'},
     {"print", no_argument, NULL, 'P'},
     {"wait", no_argument, NULL, 'w'},
@@ -184,12 +184,13 @@ int main(int argc, char *argv[]) {
     remaining = runlimit_check(ap, period, &now);
 
     VERBOSE(
-        2, "now=%llu\n"
-           "last=%llu\n"
-           "intensity=%u\n"
-           "period=%d\n"
-           "count=%u\n"
-           "threshold=%s\n",
+        2,
+        "now=%llu\n"
+        "last=%llu\n"
+        "intensity=%u\n"
+        "period=%d\n"
+        "count=%u\n"
+        "threshold=%s\n",
         (long long)now.tv_sec, (long long)ap->now.tv_sec, intensity, period,
         ap->intensity,
         (remaining != 0 && ap->intensity >= intensity ? "reached" : "below"));
@@ -331,13 +332,14 @@ static int runlimit_exists(int fd) {
 }
 
 static void usage() {
-  errx(EXIT_FAILURE, "[OPTION] <PATH>\n"
-                     "version: %s\n\n"
-                     "-i, --intensity <count>  number of restarts\n"
-                     "-p, --period <seconds>   time period\n"
-                     "-n, --dryrun             do nothing\n"
-                     "-P, --print              print remaining time\n"
-                     "-f, --file               save state in file\n"
-                     "-v, --verbose            verbose mode\n",
+  errx(EXIT_FAILURE,
+       "[OPTION] <PATH>\n"
+       "version: %s\n\n"
+       "-i, --intensity <count>  number of restarts\n"
+       "-p, --period <seconds>   time period\n"
+       "-n, --dryrun             do nothing\n"
+       "-P, --print              print remaining time\n"
+       "-f, --file               save state in file\n"
+       "-v, --verbose            verbose mode\n",
        RUNLIMIT_VERSION);
 }
