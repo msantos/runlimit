@@ -339,7 +339,7 @@ static void usage() {
        "-p, --period <seconds>   time period\n"
        "-n, --dryrun             do nothing\n"
        "-P, --print              print remaining time\n"
-       "-f, --file               save state in file\n"
+       "-f, --file <path>        save state in file\n"
        "-v, --verbose            verbose mode\n",
        RUNLIMIT_VERSION);
 }

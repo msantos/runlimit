@@ -15,34 +15,9 @@ Example
 
     # 5 runs in 60 seconds
 
-    # use shmem
-    runlimit --intensity=5 --period=60 /state-${USER}
-
     # use a file
     mkdir -p /tmp/${USER}
-    runlimit --intensity=5 --period=60 --file /tmp/${USER}/state
-
-
-### Freeradius Exec Authenticator
-
-~~~ shell
-#!/bin/sh
-
-# 6 login failures in 30 minutes
-runlimit -i 6 -p 1800 "/runlimit-${USER_NAME}"
-case $? in
-  111) echo "Authentication failure limit reached"
-       exit 6
-       ;;
-  0) ;;
-  *) echo "Internal error: $?"
-     exit 2
-     ;;
-esac
-[ "$USER_NAME" = "username" ]
-[ "$USER_PASSWORD" = "this-is-not-a-real-password" ]
-runlimit -z ${USER_NAME}
-~~~
+    runlimit --intensity=5 --period=60 --file=/tmp/${USER}/state -- ls -al
 
 Options
 -------
@@ -62,8 +37,8 @@ Options
 -z, --zero
 :   zero state
 
--f, --file
-:   save state in file
+-f, --file *path*
+:   state file
 
 -v, --verbose
 :   verbose mode
